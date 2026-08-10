@@ -21,7 +21,8 @@ class ProdutoController {
 
     async criar(req, res) {
         try {
-            const resultado = await ProdutoService.criarProduto(req.body);
+            const dadosProduto = {...req.body, imagem: req.file ? req.file.filename : null }
+            const resultado = await ProdutoService.criarProduto(dadosProduto);
             res.status(201).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
@@ -30,7 +31,7 @@ class ProdutoController {
 
     async atualizar(req, res) {
         try {
-            const resultado = await ProdutoService.atualizarProduto(req.params.id, req.body);
+            const resultado = await ProdutoService.atualizarProduto(req.params.id, {...req.body, imagem: req.file ? req.file.filename : null } );
             res.status(200).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });

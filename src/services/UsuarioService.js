@@ -21,18 +21,26 @@ class UsuarioService {
     }
 
     async criarUsuario(dados) {
-        const { nome, email, senha, setor, cargo } = dados;
+        const { nome, email, senha, setor, cargo, imagem } = dados;
 
-        if (!nome || !email || !senha || !setor || !cargo) {
-            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, email, senha, setor, cargo' };
+        if (!nome || !email || !senha || !setor || !cargo || !imagem) {
+            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, email, senha, setor, cargo e imagem' };
         }
+
 
         const usuarioExistente = await UsuarioRepository.buscarPorEmail(email);
         if (usuarioExistente) {
             throw { status: 409, mensagem: 'Já existe um usuário cadastrado com este e-mail' };
         }
 
-        const novoId = await UsuarioRepository.criar({ nome, email, senha, setor, cargo });
+        const novoId = await UsuarioRepository.criar({ 
+            nome: nome.trim(), 
+            email, 
+            senha, 
+            setor, 
+            cargo, 
+            imagem: imagem || null
+        });
         const usuarioCriado = await UsuarioRepository.buscarPorId(novoId);
 
         return { sucesso: true, mensagem: 'Usuário cadastrado com sucesso', dados: usuarioCriado };
@@ -48,14 +56,15 @@ class UsuarioService {
             throw { status: 404, mensagem: 'Usuário não encontrado' };
         }
 
-        const { nome, email, senha, setor, cargo } = dados;
+        const { nome, email, senha, setor, cargo, imagem  } = dados;
         const dadosAtualizados = {};
 
-        if (nome !== undefined) dadosAtualizados.nome = nome;
+        if (nome !== undefined && nome !== null && nome.trim() !== '') dadosAtualizados.nome = nome.trim();
         if (email !== undefined) dadosAtualizados.email = email;
         if (senha !== undefined) dadosAtualizados.senha = senha;
         if (setor !== undefined) dadosAtualizados.setor = setor;
         if (cargo !== undefined) dadosAtualizados.cargo = cargo;
+        if (imagem !== undefined && imagem !== null) dadosAtualizados.imagem = imagem;
 
         if (Object.keys(dadosAtualizados).length === 0) {
             throw { status: 400, mensagem: 'Nenhum campo para atualizar' };
