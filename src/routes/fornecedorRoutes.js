@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const FornecedorController = require('../controllers/FornecedorController');
+const upload = require('../config/multer');
 
 // GET /fornecedores
 router.get('/', FornecedorController.listar);
@@ -8,11 +9,11 @@ router.get('/', FornecedorController.listar);
 // GET /fornecedores/:id
 router.get('/:id', FornecedorController.buscarPorId);
 
-// POST /fornecedores
-router.post('/', FornecedorController.criar);
+// POST /fornecedores (campo: logo)
+router.post('/', upload.single('logo'), FornecedorController.criar);
 
-// PATCH /fornecedores/:id
-router.patch('/:id', FornecedorController.atualizar);
+// PATCH /fornecedores/:id (campo: logo)
+router.patch('/:id', upload.single('logo'), FornecedorController.atualizar);
 
 // DELETE /fornecedores/:id
 router.delete('/:id', FornecedorController.remover);
