@@ -23,28 +23,35 @@ class ProdutoService {
     async criarProduto(dados) {
         const { nome, descricao, estoque_minimo, cod_barras, preco, imagem } = dados;
 
-        if (!nome || !cod_barras) {
-            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, cod_barras' };
+        // Validação de campos obrigatórios
+        if (!nome || !cod_barras || preco === undefined || preco === null) {
+            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, cod_barras, preco' };
         }
 
+        // Validação de duplicidade do código de barras
         const produtoExistente = await ProdutoRepository.buscarPorCodBarras(cod_barras);
         if (produtoExistente) {
             throw { status: 409, mensagem: 'Já existe um produto cadastrado com este código de barras' };
         }
 
-        if (isNaN(preco) || Number(preco) <= 0) {
-            throw {
-                status: 400,
-                mensagem: "Preço deve ser um número positivo",
-            };
+        // Validação e conversão de preço
+        const precoNumerico = Number(preco);
+        if (isNaN(precoNumerico) || precoNumerico <= 0) {
+            throw { status: 400, mensagem: 'Preço deve ser um número positivo' };
+        }
+
+        // Validação e conversão do estoque mínimo
+        const estoqueNumerico = estoque_minimo !== undefined ? Number(estoque_minimo) : 0;
+        if (isNaN(estoqueNumerico) || estoqueNumerico < 0) {
+            throw { status: 400, mensagem: 'Estoque mínimo deve ser um número válido (maior ou igual a zero)' };
         }
 
         const novoProduto = {
-            nome,
-            descricao: descricao ?? null,
-            estoque_minimo: estoque_minimo ?? 0,
-            cod_barras, 
-            preco, 
+            nome: String(nome).trim(),
+            descricao: descricao ? String(descricao).trim() : null,
+            estoque_minimo: estoqueNumerico,
+            cod_barras: String(cod_barras).trim(), 
+            preco: precoNumerico, 
             imagem: imagem || null
         };
 
@@ -67,25 +74,57 @@ class ProdutoService {
         const { nome, descricao, estoque_minimo, cod_barras, preco, imagem } = dados;
         const dadosAtualizados = {};
 
-        if (nome !== undefined && nome !== null && nome.trim() !== '') dadosAtualizados.nome = nome.trim();
-        if (descricao !== undefined && descricao !== null) {
-            dadosAtualizados.descricao = descricao.trim();
-        }
-        if (estoque_minimo !== undefined) dadosAtualizados.estoque_minimo = estoque_minimo;
-        if (cod_barras !== undefined) dadosAtualizados.cod_barras = cod_barras;
-        if (preco !== undefined && preco !== null && preco !== '') {
-            if (isNaN(preco) || Number(preco) <= 0) {
-                throw {
-                    status: 400,
-                    mensagem: "Preço deve ser um número positivo",
-                };
+        // Atualização de Nome
+        if (nome !== undefined && nome !== null) {
+            const nomeFormatado = String(nome).trim();
+            if (nomeFormatado === '') {
+                throw { status: 400, mensagem: 'O nome do produto não pode ser vazio' };
             }
-            dadosAtualizados.preco = Number(preco);
+            dadosAtualizados.nome = nomeFormatado;
         }
-        if (imagem !== undefined && imagem !== null) dadosAtualizados.imagem = imagem;
+
+        // Atualização de Descrição
+        if (descricao !== undefined && descricao !== null) {
+            dadosAtualizados.descricao = String(descricao).trim();
+        }
+
+        // Atualização de Código de Barras (verificando duplicidade em OUTRO produto)
+        if (cod_barras !== undefined && cod_barras !== null) {
+            const codBarrasFormatado = String(cod_barras).trim();
+            if (codBarrasFormatado !== produtoExiste.cod_barras) {
+                const outroProduto = await ProdutoRepository.buscarPorCodBarras(codBarrasFormatado);
+                if (outroProduto) {
+                    throw { status: 409, mensagem: 'Já existe outro produto cadastrado com este código de barras' };
+                }
+                dadosAtualizados.cod_barras = codBarrasFormatado;
+            }
+        }
+
+        // Atualização de Estoque Mínimo
+        if (estoque_minimo !== undefined && estoque_minimo !== null) {
+            const estoqueNumerico = Number(estoque_minimo);
+            if (isNaN(estoqueNumerico) || estoqueNumerico < 0) {
+                throw { status: 400, mensagem: 'Estoque mínimo deve ser um número válido' };
+            }
+            dadosAtualizados.estoque_minimo = estoqueNumerico;
+        }
+
+        // Atualização de Preço
+        if (preco !== undefined && preco !== null && preco !== '') {
+            const precoNumerico = Number(preco);
+            if (isNaN(precoNumerico) || precoNumerico <= 0) {
+                throw { status: 400, mensagem: 'Preço deve ser um número positivo' };
+            }
+            dadosAtualizados.preco = precoNumerico;
+        }
+
+        // Atualização de Imagem
+        if (imagem !== undefined && imagem !== null) {
+            dadosAtualizados.imagem = imagem;
+        }
 
         if (Object.keys(dadosAtualizados).length === 0) {
-            throw { status: 400, mensagem: 'Nenhum campo para atualizar' };
+            throw { status: 400, mensagem: 'Nenhum campo válido para atualizar' };
         }
 
         await ProdutoRepository.atualizar(id, dadosAtualizados);

@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const UsuarioRepository = require('../repositories/UsuarioRepository');
 
 class UsuarioService {
@@ -23,24 +24,32 @@ class UsuarioService {
     async criarUsuario(dados) {
         const { nome, email, senha, setor, cargo, imagem } = dados;
 
-        if (!nome || !email || !senha || !setor || !cargo || !imagem) {
-            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, email, senha, setor, cargo e imagem' };
+        // Remoção da obrigatoriedade rígida de imagem (se for opcional)
+        if (!nome || !email || !senha || !setor || !cargo) {
+            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, email, senha, setor e cargo' };
         }
 
+        // Normalização do e-mail
+        const emailFormatado = String(email).trim().toLowerCase();
 
-        const usuarioExistente = await UsuarioRepository.buscarPorEmail(email);
+        const usuarioExistente = await UsuarioRepository.buscarPorEmail(emailFormatado);
         if (usuarioExistente) {
             throw { status: 409, mensagem: 'Já existe um usuário cadastrado com este e-mail' };
         }
 
+        // Hash da senha com bcrypt
+        const saltRounds = 10;
+        const senhaHash = await bcrypt.hash(senha, saltRounds);
+
         const novoId = await UsuarioRepository.criar({ 
-            nome: nome.trim(), 
-            email, 
-            senha, 
-            setor, 
-            cargo, 
+            nome: String(nome).trim(), 
+            email: emailFormatado, 
+            senha: senhaHash, 
+            setor: String(setor).trim(), 
+            cargo: String(cargo).trim(), 
             imagem: imagem || null
         });
+
         const usuarioCriado = await UsuarioRepository.buscarPorId(novoId);
 
         return { sucesso: true, mensagem: 'Usuário cadastrado com sucesso', dados: usuarioCriado };
@@ -56,18 +65,42 @@ class UsuarioService {
             throw { status: 404, mensagem: 'Usuário não encontrado' };
         }
 
-        const { nome, email, senha, setor, cargo, imagem  } = dados;
+        const { nome, email, senha, setor, cargo, imagem } = dados;
         const dadosAtualizados = {};
 
-        if (nome !== undefined && nome !== null && nome.trim() !== '') dadosAtualizados.nome = nome.trim();
-        if (email !== undefined) dadosAtualizados.email = email;
-        if (senha !== undefined) dadosAtualizados.senha = senha;
-        if (setor !== undefined) dadosAtualizados.setor = setor;
-        if (cargo !== undefined) dadosAtualizados.cargo = cargo;
+        // Atualização de Nome
+        if (nome !== undefined && nome !== null) {
+            const nomeFormatado = String(nome).trim();
+            if (nomeFormatado === '') throw { status: 400, mensagem: 'O nome não pode ser vazio' };
+            dadosAtualizados.nome = nomeFormatado;
+        }
+
+        // Atualização de E-mail (com verificação em outros usuários)
+        if (email !== undefined && email !== null) {
+            const emailFormatado = String(email).trim().toLowerCase();
+            if (emailFormatado === '') throw { status: 400, mensagem: 'O e-mail não pode ser vazio' };
+
+            if (emailFormatado !== usuarioExiste.email) {
+                const outroUsuario = await UsuarioRepository.buscarPorEmail(emailFormatado);
+                if (outroUsuario) {
+                    throw { status: 409, mensagem: 'Já existe outro usuário cadastrado com este e-mail' };
+                }
+                dadosAtualizados.email = emailFormatado;
+            }
+        }
+
+        // Atualização e Hash da Senha (caso seja alterada)
+        if (senha !== undefined && senha !== null && String(senha).trim() !== '') {
+            const saltRounds = 10;
+            dadosAtualizados.senha = await bcrypt.hash(String(senha), saltRounds);
+        }
+
+        if (setor !== undefined && setor !== null) dadosAtualizados.setor = String(setor).trim();
+        if (cargo !== undefined && cargo !== null) dadosAtualizados.cargo = String(cargo).trim();
         if (imagem !== undefined && imagem !== null) dadosAtualizados.imagem = imagem;
 
         if (Object.keys(dadosAtualizados).length === 0) {
-            throw { status: 400, mensagem: 'Nenhum campo para atualizar' };
+            throw { status: 400, mensagem: 'Nenhum campo válido para atualizar' };
         }
 
         await UsuarioRepository.atualizar(id, dadosAtualizados);

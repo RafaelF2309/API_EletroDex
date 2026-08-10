@@ -1,49 +1,59 @@
 const UsuarioService = require('../services/UsuarioService');
 
 class UsuarioController {
-    async listar(req, res) {
+    async listar(req, res, next) {
         try {
             const resultado = await UsuarioService.listarUsuarios();
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async buscarPorId(req, res) {
+    async buscarPorId(req, res, next) {
         try {
             const resultado = await UsuarioService.buscarUsuarioPorId(req.params.id);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async criar(req, res) {
+    async criar(req, res, next) {
         try {
-            const dadosProduto = {...req.body, imagem: req.file ? req.file.filename : null }
-            const resultado = await UsuarioService.criarUsuario(dadosProduto);
-            res.status(201).json(resultado);
+            const dadosUsuario = { 
+                ...req.body, 
+                imagem: req.file ? req.file.filename : null 
+            };
+            const resultado = await UsuarioService.criarUsuario(dadosUsuario);
+            return res.status(201).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async atualizar(req, res) {
+    async atualizar(req, res, next) {
         try {
-            const resultado = await UsuarioService.atualizarUsuario(req.params.id, { ...req.body, imagem: req.file ? req.file.filename : null } );
-            res.status(200).json(resultado);
+            const dadosAtualizacao = { ...req.body };
+
+            // Mantém a imagem antiga caso um novo arquivo não seja enviado
+            if (req.file) {
+                dadosAtualizacao.imagem = req.file.filename;
+            }
+
+            const resultado = await UsuarioService.atualizarUsuario(req.params.id, dadosAtualizacao);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async remover(req, res) {
+    async remover(req, res, next) {
         try {
             const resultado = await UsuarioService.removerUsuario(req.params.id);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 }

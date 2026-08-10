@@ -1,49 +1,59 @@
 const ProdutoService = require('../services/ProdutoService');
 
 class ProdutoController {
-    async listar(req, res) {
+    async listar(req, res, next) {
         try {
             const resultado = await ProdutoService.listarProdutos();
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async buscarPorId(req, res) {
+    async buscarPorId(req, res, next) {
         try {
             const resultado = await ProdutoService.buscarProdutoPorId(req.params.id);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async criar(req, res) {
+    async criar(req, res, next) {
         try {
-            const dadosProduto = {...req.body, imagem: req.file ? req.file.filename : null }
+            const dadosProduto = { 
+                ...req.body, 
+                imagem: req.file ? req.file.filename : null 
+            };
             const resultado = await ProdutoService.criarProduto(dadosProduto);
-            res.status(201).json(resultado);
+            return res.status(201).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async atualizar(req, res) {
+    async atualizar(req, res, next) {
         try {
-            const resultado = await ProdutoService.atualizarProduto(req.params.id, {...req.body, imagem: req.file ? req.file.filename : null } );
-            res.status(200).json(resultado);
+            const dadosAtualizacao = { ...req.body };
+            
+            // Só sobrescreve o campo imagem se um novo arquivo for enviado
+            if (req.file) {
+                dadosAtualizacao.imagem = req.file.filename;
+            }
+
+            const resultado = await ProdutoService.atualizarProduto(req.params.id, dadosAtualizacao);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async remover(req, res) {
+    async remover(req, res, next) {
         try {
             const resultado = await ProdutoService.removerProduto(req.params.id);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 }

@@ -18,6 +18,12 @@ router.post('/',
 router.patch('/:id', 
     upload.single('imagem'), 
     ProdutoController.atualizar);
+    
+// POST /produtos (campo: imagem)
+router.post('/', upload.single('imagem'), ProdutoController.criar);
+
+// PATCH /produtos/:id (campo: imagem)
+router.patch('/:id', upload.single('imagem'), ProdutoController.atualizar);
 
 // DELETE /produtos/:id
 router.delete('/:id', ProdutoController.remover);

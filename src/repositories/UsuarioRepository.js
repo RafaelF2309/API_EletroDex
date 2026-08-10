@@ -33,23 +33,23 @@ class UsuarioRepository {
     }
 
     async atualizar(id, dados) {
-        const camposUsuario = []
-        const dadoUsuario = []
+        const camposUsuario = [];
+        const valoresUsuario = [];
 
-        for(const [key, value] of Object.entries(dadosDoProduto)){
-            camposUsuario.push(`${key} = ?`)
-            dadoUsuario.push(value)
+        for (const [key, value] of Object.entries(dados)) {
+            camposUsuario.push(`${key} = ?`);
+            valoresUsuario.push(value);
         }
 
-        if(camposUsuario.length === 0) return null
+        if (camposUsuario.length === 0) return 0;
 
-        dadoUsuario.push(id)
+        valoresUsuario.push(id);
 
-        const query = `UPDATE produto SET ${camposUsuario.join(',')} WHERE id = ?`
+        const query = `UPDATE usuario SET ${camposUsuario.join(', ')} WHERE id_usuario = ?`;
 
-        const resultado = await pool.query(query, dadoUsuario)
+        const [resultado] = await pool.query(query, valoresUsuario);
 
-        return resultado.affectedRows
+        return resultado.affectedRows;
     }
 
     async remover(id) {

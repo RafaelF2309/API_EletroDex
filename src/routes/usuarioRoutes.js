@@ -18,6 +18,11 @@ router.post('/',
 router.patch('/:id', 
     upload.single('imagem'), 
     UsuarioController.atualizar);
+// POST /usuarios (campo: foto)
+router.post('/', upload.single('foto'), UsuarioController.criar);
+
+// PATCH /usuarios/:id (campo: foto)
+router.patch('/:id', upload.single('foto'), UsuarioController.atualizar);
 
 // DELETE /usuarios/:id
 router.delete('/:id', UsuarioController.remover);

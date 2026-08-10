@@ -33,23 +33,23 @@ class ProdutoRepository {
     }
 
     async atualizar(id, dados) {
-        const camposProduto = []
-        const dadosProduto = []
+        const camposProduto = [];
+        const valoresProduto = [];
 
-        for(const [key, value] of Object.entries(dadosDoProduto)){
-            camposProduto.push(`${key} = ?`)
-            dadoProduto.push(value)
+        for (const [key, value] of Object.entries(dados)) {
+            camposProduto.push(`${key} = ?`);
+            valoresProduto.push(value);
         }
 
-        if(camposProduto.length === 0) return null
+        if (camposProduto.length === 0) return 0;
 
-        dadoProduto.push(id)
+        valoresProduto.push(id);
 
-        const query = `UPDATE produto SET ${camposProduto.join(',')} WHERE id = ?`
+        const query = `UPDATE produto SET ${camposProduto.join(', ')} WHERE id_produto = ?`;
 
-        const resultado = await pool.query(query, dadoProduto)
+        const [resultado] = await pool.query(query, valoresProduto);
 
-        return resultado.affectedRows
+        return resultado.affectedRows;
     }
 
     async remover(id) {
