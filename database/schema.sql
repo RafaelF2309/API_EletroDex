@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS usuario (
     email VARCHAR(100) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
     setor VARCHAR(50) NOT NULL,
-    cargo VARCHAR(50) NOT NULL
+    cargo VARCHAR(50) NOT NULL,
+    imagem VARCHAR(255)
 );
 
 -- ============================================
@@ -38,7 +39,9 @@ CREATE TABLE IF NOT EXISTS produto (
     nome VARCHAR(100) NOT NULL,
     descricao TEXT,
     estoque_minimo INT NOT NULL DEFAULT 0,
-    cod_barras VARCHAR(50) NOT NULL UNIQUE
+    cod_barras VARCHAR(50) NOT NULL UNIQUE,
+    preco INT NOT NULL,
+    imagem VARCHAR(255)
 );
 
 -- ============================================
