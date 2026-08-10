@@ -1,44 +1,8 @@
-const multer = require("multer");
-const path = require("path");
-
-const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-    callback(null, "uploads/");
-  },
-  filename: (req, file, callback) => {
-    const time = new Date().getTime();
-    const nomeOriginal = file.originalname.replace(/\s+/g, "-");
-    const nomeArquivo = `${time}-${nomeOriginal}`;
-    callback(null, nomeArquivo);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-  fileFilter: (req, file, callback) => {
-    const tiposPermitidos = [
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "image/webp",
-    ];
-    if (tiposPermitidos.includes(file.mimetype)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Tipo de arquivo inválido"));
-    }
-  },
-});
-
-module.exports = upload;
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Garante que a pasta de uploads existe
+// Garante que a pasta de uploads existe na raiz do projeto
 const uploadDir = path.resolve(__dirname, '..', '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -54,8 +18,9 @@ const storage = multer.diskStorage({
         const timestamp = Date.now();
         const ext = path.extname(file.originalname);
         const basename = path.basename(file.originalname, ext)
-            .replace(/\s+/g, '_')       // Substitui espaços por _
+            .replace(/\s+/g, '_')            // Substitui espaços por _
             .replace(/[^a-zA-Z0-9_-]/g, ''); // Remove caracteres especiais
+
         cb(null, `${timestamp}-${basename}${ext}`);
     }
 });
@@ -71,7 +36,7 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Instância do multer com as configurações definidas
+// Instância do multer
 const upload = multer({
     storage,
     fileFilter,
