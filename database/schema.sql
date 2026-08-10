@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS estoque (
     id_estoque INT AUTO_INCREMENT PRIMARY KEY,
     id_produto INT NOT NULL,
     id_lote INT NOT NULL,
-    qtd_atual INT NOT NULL CHECK (qtd_atual > 0),
+    qtd_atual INT NOT NULL CHECK (qtd_atual >= 0),
     localizacao_corredor VARCHAR(20) NOT NULL,
     localizacao_prateleira VARCHAR(20) NOT NULL,
     FOREIGN KEY (id_produto) REFERENCES produto(id_produto),
