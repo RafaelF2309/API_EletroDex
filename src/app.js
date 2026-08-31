@@ -1,12 +1,15 @@
 const express = require('express');
+const path = require('path');
 const routes = require('./routes');
 
 const app = express();
-const path = require('path')
 
 app.use(express.json());
 
-// Todas as rotas ficam sob o prefixo /api, conforme a documentação
+// Rota estática de uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Todas as rotas ficam sob o prefixo /api
 app.use('/api', routes);
 
 // Rota raiz simples para checar se a API está no ar
@@ -22,9 +25,9 @@ app.use((req, res) => {
 // Middleware genérico de tratamento de erros
 app.use((err, req, res, next) => {
     console.error(err);
-    res.status(500).json({ sucesso: false, mensagem: 'Erro interno do servidor' });
+    const status = err.status || 500;
+    const mensagem = err.mensagem || 'Erro interno do servidor';
+    res.status(status).json({ sucesso: false, mensagem });
 });
-
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')))
 
 module.exports = app;

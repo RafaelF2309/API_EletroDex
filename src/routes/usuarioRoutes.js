@@ -1,30 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../config/multer')
+const upload = require('../config/multer');
 const UsuarioController = require('../controllers/UsuarioController');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-// GET /usuarios
-router.get('/', UsuarioController.listar);
+// POST /usuarios (Cadastro público)
+router.post('/', upload.single('imagem'), UsuarioController.criar);
 
-// GET /usuarios/:id
-router.get('/:id', UsuarioController.buscarPorId);
-
-// POST /usuarios
-router.post('/', 
-    upload.single('imagem'),
-    UsuarioController.criar);
-
-// PATCH /usuarios/:id
-router.patch('/:id', 
-    upload.single('imagem'), 
-    UsuarioController.atualizar);
-// POST /usuarios (campo: foto)
-router.post('/', upload.single('foto'), UsuarioController.criar);
-
-// PATCH /usuarios/:id (campo: foto)
-router.patch('/:id', upload.single('foto'), UsuarioController.atualizar);
-
-// DELETE /usuarios/:id
-router.delete('/:id', UsuarioController.remover);
+// Rotas de usuários protegidas por JWT
+router.get('/', authMiddleware, UsuarioController.listar);
+router.get('/:id', authMiddleware, UsuarioController.buscarPorId);
+router.patch('/:id', authMiddleware, upload.single('imagem'), UsuarioController.atualizar);
+router.delete('/:id', authMiddleware, UsuarioController.remover);
 
 module.exports = router;
