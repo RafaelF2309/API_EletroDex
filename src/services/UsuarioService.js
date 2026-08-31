@@ -2,125 +2,290 @@ const bcrypt = require('bcrypt');
 const UsuarioRepository = require('../repositories/UsuarioRepository');
 
 class UsuarioService {
+
     async listarUsuarios() {
         const usuarios = await UsuarioRepository.listarTodos();
-        return { sucesso: true, dados: usuarios, total: usuarios.length };
+
+        return {
+            sucesso: true,
+            dados: usuarios,
+            total: usuarios.length
+        };
     }
 
     async buscarUsuarioPorId(id) {
         if (!id || isNaN(id)) {
-            throw { status: 400, mensagem: 'ID inválido' };
+            throw {
+                status: 400,
+                mensagem: 'ID inválido'
+            };
         }
 
         const usuario = await UsuarioRepository.buscarPorId(id);
 
         if (!usuario) {
-            throw { status: 404, mensagem: 'Usuário não encontrado' };
+            throw {
+                status: 404,
+                mensagem: 'Usuário não encontrado'
+            };
         }
 
-        return { sucesso: true, dados: usuario };
+        return {
+            sucesso: true,
+            dados: usuario
+        };
     }
 
     async criarUsuario(dados) {
-        const { nome, email, senha, setor, cargo, imagem } = dados;
 
-        // Remoção da obrigatoriedade rígida de imagem (se for opcional)
-        if (!nome || !email || !senha || !setor || !cargo) {
-            throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome, email, senha, setor e cargo' };
+        const {
+            nome,
+            email,
+            senha,
+            setor,
+            id_cargo,
+            foto_perfil
+        } = dados;
+
+        // Verificar campos obrigatórios
+        if (!nome || !email || !senha || !setor || !id_cargo) {
+            throw {
+                status: 400,
+                mensagem: 'Campos obrigatórios faltando: nome, email, senha, setor e id_cargo'
+            };
         }
 
-        // Normalização do e-mail
-        const emailFormatado = String(email).trim().toLowerCase();
+        // Verificar se o cargo é válido
+        if (isNaN(id_cargo)) {
+            throw {
+                status: 400,
+                mensagem: 'id_cargo inválido'
+            };
+        }
 
-        const usuarioExistente = await UsuarioRepository.buscarPorEmail(emailFormatado);
+        // Normalizar e-mail
+        const emailFormatado = String(email)
+            .trim()
+            .toLowerCase();
+
+        // Verificar se já existe usuário com esse e-mail
+        const usuarioExistente =
+            await UsuarioRepository.buscarPorEmail(emailFormatado);
+
         if (usuarioExistente) {
-            throw { status: 409, mensagem: 'Já existe um usuário cadastrado com este e-mail' };
+            throw {
+                status: 409,
+                mensagem: 'Já existe um usuário cadastrado com este e-mail'
+            };
         }
 
-        // Hash da senha com bcrypt
+        // Hash da senha
         const saltRounds = 10;
-        const senhaHash = await bcrypt.hash(senha, saltRounds);
 
-        const novoId = await UsuarioRepository.criar({ 
-            nome: String(nome).trim(), 
-            email: emailFormatado, 
-            senha: senhaHash, 
-            setor: String(setor).trim(), 
-            cargo: String(cargo).trim(), 
-            imagem: imagem || null
+        const senhaHash = await bcrypt.hash(
+            String(senha),
+            saltRounds
+        );
+
+        // Criar usuário
+        const novoId = await UsuarioRepository.criar({
+            nome: String(nome).trim(),
+            email: emailFormatado,
+            senha: senhaHash,
+            setor: String(setor).trim(),
+            id_cargo: Number(id_cargo),
+            foto_perfil: foto_perfil || null
         });
 
-        const usuarioCriado = await UsuarioRepository.buscarPorId(novoId);
+        // Buscar usuário criado
+        const usuarioCriado =
+            await UsuarioRepository.buscarPorId(novoId);
 
-        return { sucesso: true, mensagem: 'Usuário cadastrado com sucesso', dados: usuarioCriado };
+        return {
+            sucesso: true,
+            mensagem: 'Usuário cadastrado com sucesso',
+            dados: usuarioCriado
+        };
     }
 
     async atualizarUsuario(id, dados) {
+
         if (!id || isNaN(id)) {
-            throw { status: 400, mensagem: 'ID inválido' };
+            throw {
+                status: 400,
+                mensagem: 'ID inválido'
+            };
         }
 
-        const usuarioExiste = await UsuarioRepository.buscarPorId(id);
+        const usuarioExiste =
+            await UsuarioRepository.buscarPorId(id);
+
         if (!usuarioExiste) {
-            throw { status: 404, mensagem: 'Usuário não encontrado' };
+            throw {
+                status: 404,
+                mensagem: 'Usuário não encontrado'
+            };
         }
 
-        const { nome, email, senha, setor, cargo, imagem } = dados;
+        const {
+            nome,
+            email,
+            senha,
+            setor,
+            id_cargo,
+            foto_perfil
+        } = dados;
+
         const dadosAtualizados = {};
 
-        // Atualização de Nome
+        // Nome
         if (nome !== undefined && nome !== null) {
+
             const nomeFormatado = String(nome).trim();
-            if (nomeFormatado === '') throw { status: 400, mensagem: 'O nome não pode ser vazio' };
+
+            if (nomeFormatado === '') {
+                throw {
+                    status: 400,
+                    mensagem: 'O nome não pode ser vazio'
+                };
+            }
+
             dadosAtualizados.nome = nomeFormatado;
         }
 
-        // Atualização de E-mail (com verificação em outros usuários)
+        // E-mail
         if (email !== undefined && email !== null) {
-            const emailFormatado = String(email).trim().toLowerCase();
-            if (emailFormatado === '') throw { status: 400, mensagem: 'O e-mail não pode ser vazio' };
+
+            const emailFormatado = String(email)
+                .trim()
+                .toLowerCase();
+
+            if (emailFormatado === '') {
+                throw {
+                    status: 400,
+                    mensagem: 'O e-mail não pode ser vazio'
+                };
+            }
 
             if (emailFormatado !== usuarioExiste.email) {
-                const outroUsuario = await UsuarioRepository.buscarPorEmail(emailFormatado);
+
+                const outroUsuario =
+                    await UsuarioRepository.buscarPorEmail(
+                        emailFormatado
+                    );
+
                 if (outroUsuario) {
-                    throw { status: 409, mensagem: 'Já existe outro usuário cadastrado com este e-mail' };
+                    throw {
+                        status: 409,
+                        mensagem: 'Já existe outro usuário cadastrado com este e-mail'
+                    };
                 }
-                dadosAtualizados.email = emailFormatado;
             }
+
+            dadosAtualizados.email = emailFormatado;
         }
 
-        // Atualização e Hash da Senha (caso seja alterada)
-        if (senha !== undefined && senha !== null && String(senha).trim() !== '') {
-            const saltRounds = 10;
-            dadosAtualizados.senha = await bcrypt.hash(String(senha), saltRounds);
+        // Senha
+        if (
+            senha !== undefined &&
+            senha !== null &&
+            String(senha).trim() !== ''
+        ) {
+
+            dadosAtualizados.senha =
+                await bcrypt.hash(
+                    String(senha),
+                    10
+                );
         }
 
-        if (setor !== undefined && setor !== null) dadosAtualizados.setor = String(setor).trim();
-        if (cargo !== undefined && cargo !== null) dadosAtualizados.cargo = String(cargo).trim();
-        if (imagem !== undefined && imagem !== null) dadosAtualizados.imagem = imagem;
+        // Setor
+        if (setor !== undefined && setor !== null) {
 
+            const setorFormatado = String(setor).trim();
+
+            const setoresValidos = [
+                'gerencia',
+                'estoque',
+                'vendas'
+            ];
+
+            if (!setoresValidos.includes(setorFormatado)) {
+                throw {
+                    status: 400,
+                    mensagem: 'Setor inválido. Use: gerencia, estoque ou vendas'
+                };
+            }
+
+            dadosAtualizados.setor = setorFormatado;
+        }
+
+        // Cargo
+        if (id_cargo !== undefined && id_cargo !== null) {
+
+            if (isNaN(id_cargo)) {
+                throw {
+                    status: 400,
+                    mensagem: 'id_cargo inválido'
+                };
+            }
+
+            dadosAtualizados.id_cargo = Number(id_cargo);
+        }
+
+        // Foto
+        if (foto_perfil !== undefined && foto_perfil !== null) {
+            dadosAtualizados.foto_perfil = foto_perfil;
+        }
+
+        // Verificar se existe alguma alteração
         if (Object.keys(dadosAtualizados).length === 0) {
-            throw { status: 400, mensagem: 'Nenhum campo válido para atualizar' };
+            throw {
+                status: 400,
+                mensagem: 'Nenhum campo válido para atualizar'
+            };
         }
 
-        await UsuarioRepository.atualizar(id, dadosAtualizados);
-        const usuarioAtualizado = await UsuarioRepository.buscarPorId(id);
+        await UsuarioRepository.atualizar(
+            id,
+            dadosAtualizados
+        );
 
-        return { sucesso: true, mensagem: 'Usuário atualizado com sucesso', dados: usuarioAtualizado };
+        const usuarioAtualizado =
+            await UsuarioRepository.buscarPorId(id);
+
+        return {
+            sucesso: true,
+            mensagem: 'Usuário atualizado com sucesso',
+            dados: usuarioAtualizado
+        };
     }
 
     async removerUsuario(id) {
+
         if (!id || isNaN(id)) {
-            throw { status: 400, mensagem: 'ID inválido' };
+            throw {
+                status: 400,
+                mensagem: 'ID inválido'
+            };
         }
 
-        const usuarioExiste = await UsuarioRepository.buscarPorId(id);
+        const usuarioExiste =
+            await UsuarioRepository.buscarPorId(id);
+
         if (!usuarioExiste) {
-            throw { status: 404, mensagem: 'Usuário não encontrado' };
+            throw {
+                status: 404,
+                mensagem: 'Usuário não encontrado'
+            };
         }
 
         await UsuarioRepository.remover(id);
-        return { sucesso: true, mensagem: 'Usuário removido com sucesso' };
+
+        return {
+            sucesso: true,
+            mensagem: 'Usuário removido com sucesso'
+        };
     }
 }
 

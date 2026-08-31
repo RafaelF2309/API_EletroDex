@@ -266,7 +266,7 @@ class EntradaService {
           status: 404,
           mensagem:
             "Estoque novo não encontrado para o produto e lote informados",
-        };
+        };  
       }
 
       // Remove a quantidade da entrada antiga
