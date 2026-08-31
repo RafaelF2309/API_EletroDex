@@ -1,23 +1,9 @@
-<<<<<<< HEAD
-const AuthService = require('../services/AuthService');
-
-class AuthController {
-    async login(req, res, next) {
-        try {
-            const { email, senha } = req.body;
-            const resultado = await AuthService.login({ email, senha });
-            return res.status(200).json(resultado);
-        } catch (erro) {
-            next(erro);
-=======
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
 const UsuarioRepository = require('../repositories/UsuarioRepository');
 
 class AuthController {
-
-    async login(req, res) {
+    async login(req, res, next) {
         try {
             const { email, senha } = req.body;
 
@@ -30,14 +16,10 @@ class AuthController {
             }
 
             // Normalizar e-mail
-            const emailFormatado = String(email)
-                .trim()
-                .toLowerCase();
+            const emailFormatado = String(email).trim().toLowerCase();
 
             // Buscar usuário pelo e-mail
-            const usuario = await UsuarioRepository.buscarPorEmail(
-                emailFormatado
-            );
+            const usuario = await UsuarioRepository.buscarPorEmail(emailFormatado);
 
             if (!usuario) {
                 return res.status(401).json({
@@ -47,10 +29,7 @@ class AuthController {
             }
 
             // Comparar senha informada com senha criptografada
-            const senhaCorreta = await bcrypt.compare(
-                senha,
-                usuario.senha
-            );
+            const senhaCorreta = await bcrypt.compare(String(senha), usuario.senha);
 
             if (!senhaCorreta) {
                 return res.status(401).json({
@@ -59,20 +38,20 @@ class AuthController {
                 });
             }
 
+            const jwtSecret = process.env.JWT_SECRET || 'eletrodex_secret_key_2026_super_segura';
+            const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '8h';
+
             // Criar payload do token
             const payload = {
                 id_usuario: usuario.id_usuario,
-                email: usuario.email
+                nome: usuario.nome,
+                email: usuario.email,
+                setor: usuario.setor,
+                id_cargo: usuario.id_cargo
             };
 
             // Gerar JWT
-            const token = jwt.sign(
-                payload,
-                process.env.JWT_SECRET,
-                {
-                    expiresIn: process.env.JWT_EXPIRES_IN || '8h'
-                }
-            );
+            const token = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
 
             // Não enviar a senha para o cliente
             const usuarioSeguro = {
@@ -93,18 +72,12 @@ class AuthController {
 
         } catch (erro) {
             console.error('Erro no login:', erro);
-
             return res.status(500).json({
                 sucesso: false,
                 mensagem: 'Erro interno ao realizar login'
             });
->>>>>>> 576f3cf141e17024050a6cdf09b3c6a0b46b1f53
         }
     }
 }
 
-<<<<<<< HEAD
 module.exports = new AuthController();
-=======
-module.exports = new AuthController();
->>>>>>> 576f3cf141e17024050a6cdf09b3c6a0b46b1f53
