@@ -1,0 +1,7 @@
+USE eletrodex_db;
+
+ALTER TABLE ajustes
+    ADD COLUMN qtd_anterior INT NOT NULL DEFAULT 0 AFTER id_lote,
+    ADD COLUMN diferenca INT NOT NULL DEFAULT 0 AFTER qtd_anterior,
+    ADD COLUMN qtd_nova INT NOT NULL DEFAULT 0 AFTER diferenca,
+    MODIFY COLUMN ajuste_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;

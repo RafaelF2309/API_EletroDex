@@ -143,6 +143,14 @@ class ProdutoService {
             throw { status: 404, mensagem: 'Produto não encontrado' };
         }
 
+        const dependencias = await ProdutoRepository.contarDependencias(id);
+        if (dependencias > 0) {
+            throw {
+                status: 409,
+                mensagem: 'Produto possui lotes, estoque ou movimentações vinculadas e não pode ser removido'
+            };
+        }
+
         await ProdutoRepository.remover(id);
         return { sucesso: true, mensagem: 'Produto removido com sucesso' };
     }

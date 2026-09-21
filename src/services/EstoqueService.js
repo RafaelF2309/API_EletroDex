@@ -8,6 +8,25 @@ class EstoqueService {
         return { sucesso: true, dados: estoques, total: estoques.length };
     }
 
+    async listarEstoquesAbaixoDoMinimo() {
+        const estoques = await EstoqueRepository.listarAbaixoDoMinimo();
+        return { sucesso: true, dados: estoques, total: estoques.length };
+    }
+
+    async ajustarEstoque(id, dados, id_usuario) {
+        if (!id || isNaN(id)) throw { status: 400, mensagem: 'ID inválido' };
+        const diferenca = Number(dados.diferenca);
+        const motivo = typeof dados.motivo === 'string' ? dados.motivo.trim() : '';
+        if (!Number.isInteger(diferenca) || diferenca === 0) {
+            throw { status: 400, mensagem: 'diferenca deve ser um número inteiro diferente de zero' };
+        }
+        if (!motivo || motivo.length > 200) {
+            throw { status: 400, mensagem: 'motivo é obrigatório e deve ter no máximo 200 caracteres' };
+        }
+        const resultado = await EstoqueRepository.ajustarComAuditoria(id, id_usuario, diferenca, motivo);
+        return { sucesso: true, mensagem: 'Estoque ajustado e auditado com sucesso', dados: resultado };
+    }
+
     async buscarEstoquePorId(id) {
         if (!id || isNaN(id)) {
             throw { status: 400, mensagem: 'ID inválido' };
@@ -67,14 +86,12 @@ class EstoqueService {
         const { id_produto, id_lote, qtd_atual, localizacao_corredor, localizacao_prateleira } = dados;
         const dadosAtualizados = {};
 
+        if (qtd_atual !== undefined) {
+            throw { status: 400, mensagem: 'qtd_atual só pode ser alterada pelo endpoint de ajuste auditável' };
+        }
+
         if (id_produto !== undefined) dadosAtualizados.id_produto = id_produto;
         if (id_lote !== undefined) dadosAtualizados.id_lote = id_lote;
-        if (qtd_atual !== undefined) {
-            if (qtd_atual <= 0) {
-                throw { status: 400, mensagem: 'A quantidade atual deve ser maior que zero' };
-            }
-            dadosAtualizados.qtd_atual = qtd_atual;
-        }
         if (localizacao_corredor !== undefined) dadosAtualizados.localizacao_corredor = localizacao_corredor;
         if (localizacao_prateleira !== undefined) dadosAtualizados.localizacao_prateleira = localizacao_prateleira;
 
@@ -96,6 +113,10 @@ class EstoqueService {
         const estoqueExiste = await EstoqueRepository.buscarPorId(id);
         if (!estoqueExiste) {
             throw { status: 404, mensagem: 'Registro de estoque não encontrado' };
+        }
+
+        if (estoqueExiste.qtd_atual > 0) {
+            throw { status: 409, mensagem: 'Estoque com saldo positivo não pode ser removido' };
         }
 
         await EstoqueRepository.remover(id);

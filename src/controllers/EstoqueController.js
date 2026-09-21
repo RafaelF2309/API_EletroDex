@@ -10,6 +10,15 @@ class EstoqueController {
         }
     }
 
+    async listarAbaixoDoMinimo(req, res) {
+        try {
+            const resultado = await EstoqueService.listarEstoquesAbaixoDoMinimo();
+            res.status(200).json(resultado);
+        } catch (erro) {
+            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+        }
+    }
+
     async buscarPorId(req, res) {
         try {
             const resultado = await EstoqueService.buscarEstoquePorId(req.params.id);
@@ -31,6 +40,19 @@ class EstoqueController {
     async atualizar(req, res) {
         try {
             const resultado = await EstoqueService.atualizarEstoque(req.params.id, req.body);
+            res.status(200).json(resultado);
+        } catch (erro) {
+            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+        }
+    }
+
+    async ajustar(req, res) {
+        try {
+            const resultado = await EstoqueService.ajustarEstoque(
+                req.params.id,
+                req.body,
+                req.usuario.id_usuario
+            );
             res.status(200).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });

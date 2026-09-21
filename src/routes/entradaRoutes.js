@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const EntradaController = require('../controllers/EntradaController');
+const authorize = require('../middlewares/authorize')
 
 // GET /entrada
 router.get('/', EntradaController.listar);
@@ -9,12 +10,12 @@ router.get('/', EntradaController.listar);
 router.get('/:id', EntradaController.buscarPorId);
 
 // POST /entrada
-router.post('/', EntradaController.criar);
+router.post('/', authorize(2), EntradaController.criar);
 
 // PATCH /entrada/:id
-router.patch('/:id', EntradaController.atualizar);
+router.patch('/:id', authorize(2), EntradaController.atualizar);
 
 // DELETE /entrada/:id
-router.delete('/:id', EntradaController.remover);
+router.delete('/:id', authorize(3), EntradaController.remover);
 
 module.exports = router;

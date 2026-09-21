@@ -24,6 +24,18 @@ class LoteRepository {
         return lotes[0];
     }
 
+    async contarDependencias(id) {
+        const [resultados] = await pool.query(
+            `SELECT
+                (SELECT COUNT(*) FROM estoque WHERE id_lote = ?) +
+                (SELECT COUNT(*) FROM entrada WHERE id_lote = ?) +
+                (SELECT COUNT(*) FROM saida WHERE id_lote = ?) +
+                (SELECT COUNT(*) FROM ajustes WHERE id_lote = ?) AS total`,
+            [id, id, id, id]
+        );
+        return Number(resultados[0].total);
+    }
+
     async criar(dados) {
         const [resultado] = await pool.query(
             'INSERT INTO lote SET ?',

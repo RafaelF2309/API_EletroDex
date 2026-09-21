@@ -74,14 +74,14 @@ class SaidaService {
         const dadosAtualizados = {};
 
         if (id_usuario !== undefined) {
-            if (!await ProdutoRepository.buscarPorId(id_usuario)){
-                throw { status: 404, mensagem: 'Usuário informado não existe' }
+            if (!await UsuarioRepository.buscarPorId(id_usuario)) {
+                throw { status: 404, mensagem: 'Usuário informado não existe' };
             }
             dadosAtualizados.id_usuario = id_usuario;
-        } 
+        }
         if (id_fornecedor !== undefined) {
-            if (!await ProdutoRepository.buscarPorId(id_fornecedor)){
-                throw { status: 404, mensagem: 'Fornecedor informado não existe' }
+            if (!await FornecedorRepository.buscarPorId(id_fornecedor)) {
+                throw { status: 404, mensagem: 'Fornecedor informado não existe' };
             }
             dadosAtualizados.id_fornecedor = id_fornecedor;
         }

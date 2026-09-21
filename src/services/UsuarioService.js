@@ -296,6 +296,14 @@ class UsuarioService {
             };
         }
 
+        const dependencias = await UsuarioRepository.contarDependencias(id);
+        if (dependencias > 0) {
+            throw {
+                status: 409,
+                mensagem: 'Usuário possui movimentações ou ajustes vinculados e não pode ser removido'
+            };
+        }
+
         await UsuarioRepository.remover(id);
 
         return {

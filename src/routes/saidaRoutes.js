@@ -1,20 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const SaidaController = require('../controllers/SaidaController');
+const authorize = require('../middlewares/authorize');
 
-// GET /saida
 router.get('/', SaidaController.listar);
-
-// GET /saida/:id
 router.get('/:id', SaidaController.buscarPorId);
-
-// POST /saida
-router.post('/', SaidaController.criar);
-
-// PATCH /saida/:id
-router.patch('/:id', SaidaController.atualizar);
-
-// DELETE /saida/:id
-router.delete('/:id', SaidaController.remover);
+router.post('/', authorize(1), SaidaController.criar);
+router.patch('/:id', authorize(2), SaidaController.atualizar);
+router.delete('/:id', authorize(3), SaidaController.remover);
 
 module.exports = router;

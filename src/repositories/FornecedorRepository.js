@@ -24,6 +24,17 @@ class FornecedorRepository {
         return fornecedores[0];
     }
 
+    async contarDependencias(id) {
+        const [resultados] = await pool.query(
+            `SELECT
+                (SELECT COUNT(*) FROM lote WHERE id_fornecedor = ?) +
+                (SELECT COUNT(*) FROM entrada WHERE id_fornecedor = ?) +
+                (SELECT COUNT(*) FROM saida WHERE id_fornecedor = ?) AS total`,
+            [id, id, id]
+        );
+        return Number(resultados[0].total);
+    }
+
     async criar(dados) {
         const [resultado] = await pool.query(
             'INSERT INTO fornecedor SET ?',

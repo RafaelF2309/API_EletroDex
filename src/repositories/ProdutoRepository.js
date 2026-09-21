@@ -24,6 +24,19 @@ class ProdutoRepository {
         return produtos[0];
     }
 
+    async contarDependencias(id) {
+        const [resultados] = await pool.query(
+            `SELECT
+                (SELECT COUNT(*) FROM lote WHERE id_produto = ?) +
+                (SELECT COUNT(*) FROM estoque WHERE id_produto = ?) +
+                (SELECT COUNT(*) FROM entrada WHERE id_produto = ?) +
+                (SELECT COUNT(*) FROM saida WHERE id_produto = ?) +
+                (SELECT COUNT(*) FROM ajustes WHERE id_produto = ?) AS total`,
+            [id, id, id, id, id]
+        );
+        return Number(resultados[0].total);
+    }
+
     async criar(dados) {
         const [resultado] = await pool.query(
             'INSERT INTO produto SET ?',

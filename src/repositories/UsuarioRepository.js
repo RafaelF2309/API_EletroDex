@@ -69,6 +69,17 @@ class UsuarioRepository {
         return usuarios[0];
     }
 
+    async contarDependencias(id) {
+        const [resultados] = await pool.query(
+            `SELECT
+                (SELECT COUNT(*) FROM entrada WHERE id_usuario = ?) +
+                (SELECT COUNT(*) FROM saida WHERE id_usuario = ?) +
+                (SELECT COUNT(*) FROM ajustes WHERE id_usuario = ?) AS total`,
+            [id, id, id]
+        );
+        return Number(resultados[0].total);
+    }
+
     async criar(dados) {
 
         const [resultado] = await pool.query(
