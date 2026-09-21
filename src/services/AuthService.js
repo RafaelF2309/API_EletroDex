@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UsuarioRepository = require('../repositories/UsuarioRepository');
+const { getJwtSecret } = require('../config/auth')
 
 class AuthService {
     async login({ email, senha }) {
@@ -22,7 +23,7 @@ class AuthService {
             throw { status: 401, mensagem: 'E-mail ou senha inválidos' };
         }
 
-        const jwtSecret = process.env.JWT_SECRET || 'eletrodex_secret_key_2026_super_segura';
+        const jwtSecret = getJwtSecret()
         const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '8h';
 
         const payload = {

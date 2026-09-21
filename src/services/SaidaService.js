@@ -73,9 +73,24 @@ class SaidaService {
         const { id_usuario, id_fornecedor, id_produto, data, lote, quantidade, rastreamento } = dados;
         const dadosAtualizados = {};
 
-        if (id_usuario !== undefined) dadosAtualizados.id_usuario = id_usuario;
-        if (id_fornecedor !== undefined) dadosAtualizados.id_fornecedor = id_fornecedor;
-        if (id_produto !== undefined) dadosAtualizados.id_produto = id_produto;
+        if (id_usuario !== undefined) {
+            if (!await ProdutoRepository.buscarPorId(id_usuario)){
+                throw { status: 404, mensagem: 'Usuário informado não existe' }
+            }
+            dadosAtualizados.id_usuario = id_usuario;
+        } 
+        if (id_fornecedor !== undefined) {
+            if (!await ProdutoRepository.buscarPorId(id_fornecedor)){
+                throw { status: 404, mensagem: 'Fornecedor informado não existe' }
+            }
+            dadosAtualizados.id_fornecedor = id_fornecedor;
+        }
+        if (id_produto !== undefined) {
+            if (!await ProdutoRepository.buscarPorId(id_produto)) {
+                throw { status: 404, mensagem: 'Produto informado não existe' };
+            }
+            dadosAtualizados.id_produto = id_produto;
+        }
         if (data !== undefined) dadosAtualizados.data = data;
         if (lote !== undefined) dadosAtualizados.lote = lote;
         if (quantidade !== undefined) {

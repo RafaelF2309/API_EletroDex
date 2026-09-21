@@ -10,10 +10,10 @@ router.get('/', FornecedorController.listar);
 router.get('/:id', FornecedorController.buscarPorId);
 
 // POST /fornecedores (campo: logo)
-router.post('/', upload.single('logo'), FornecedorController.criar);
+router.post('/', FornecedorController.criar);
 
 // PATCH /fornecedores/:id (campo: logo)
-router.patch('/:id', upload.single('logo'), FornecedorController.atualizar);
+router.patch('/:id', FornecedorController.atualizar);
 
 // DELETE /fornecedores/:id
 router.delete('/:id', FornecedorController.remover);

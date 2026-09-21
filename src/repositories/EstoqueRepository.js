@@ -8,6 +8,18 @@ class EstoqueRepository {
         return estoques;
     }
 
+    async listarAbaixoDoMinimo() {
+        const [estoques] = await pool.query(
+            `SELECT e.*, p.nome AS nome_produto, p.estoque_minimo,
+                    (p.estoque_minimo - e.qtd_atual) AS quantidade_repor
+             FROM estoque e
+             INNER JOIN produto p ON p.id_produto = e.id_produto
+             WHERE e.qtd_atual < p.estoque_minimo
+             ORDER BY quantidade_repor DESC, p.nome ASC`
+        );
+        return estoques;
+    }
+
     async buscarPorId(id) {
         const [estoques] = await pool.query(
             'SELECT * FROM estoque WHERE id_estoque = ?',

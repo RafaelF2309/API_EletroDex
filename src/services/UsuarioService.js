@@ -63,6 +63,14 @@ class UsuarioService {
             };
         }
 
+        const cargoExiste = await UsuarioRepository.buscarCargoPorId(Number(id_cargo));
+        if (!cargoExiste) {
+            throw {
+                status: 404,
+                mensagem: 'Cargo informado não existe'
+            };
+        }
+
         // Normalizar e-mail
         const emailFormatado = String(email)
             .trim()
@@ -227,6 +235,14 @@ class UsuarioService {
                 throw {
                     status: 400,
                     mensagem: 'id_cargo inválido'
+                };
+            }
+
+            const cargoExiste = await UsuarioRepository.buscarCargoPorId(Number(id_cargo));
+            if (!cargoExiste) {
+                throw {
+                    status: 404,
+                    mensagem: 'Cargo informado não existe'
                 };
             }
 
