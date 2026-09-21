@@ -15,6 +15,9 @@ router.get('/:id', EstoqueController.buscarPorId);
 // POST /estoque
 router.post('/', authorize(2),  EstoqueController.criar);
 
+//POST /api/estoque/:id/ajuste
+router.post('/:id/ajuste', authorize(2), EstoqueController.ajustar);
+
 // PATCH /estoque/:id
 router.patch('/:id', authorize(2), EstoqueController.atualizar);
 
