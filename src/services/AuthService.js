@@ -28,6 +28,7 @@ class AuthService {
             email: usuario.email,
             setor: usuario.setor,
             id_cargo: usuario.id_cargo,
+            nome_cargo: usuario.nome_cargo,
             nivel_acesso: usuario.nivel_acesso,
             foto_perfil: usuario.foto_perfil
         };

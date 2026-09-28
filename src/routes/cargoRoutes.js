@@ -1,9 +1,7 @@
 const express = require('express');
-
 const router = express.Router();
 
 const CargoController = require('../controllers/CargoController');
-
 const authMiddleware = require('../middlewares/authMiddleware');
 
 const {

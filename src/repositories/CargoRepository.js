@@ -5,7 +5,7 @@ class CargoRepository {
     async listarTodos() {
 
         const [cargos] = await pool.query(
-            'SELECT * FROM cargo ORDER BY id_cargo ASC'
+            'SELECT * FROM cargo ORDER BY nivel_acesso DESC, id_cargo ASC'
         );
 
         return cargos;

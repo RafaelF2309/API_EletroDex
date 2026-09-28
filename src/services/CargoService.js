@@ -88,11 +88,12 @@ class CargoService {
             if (
                 isNaN(nivelNumerico) ||
                 !Number.isInteger(nivelNumerico) ||
-                nivelNumerico < 1
+                nivelNumerico < 1 ||
+                nivelNumerico > 3
             ) {
                 throw {
                     status: 400,
-                    mensagem: 'Nível de acesso deve ser um número inteiro maior ou igual a 1'
+                    mensagem: 'Nível de acesso deve ser um número inteiro entre 1 e 3'
                 };
             }
         }
@@ -175,7 +176,7 @@ class CargoService {
                         nomeFormatado
                     );
 
-                if (outroCargo) {
+                if (outroCargo && Number(outroCargo.id_cargo) !== Number(id)) {
                     throw {
                         status: 409,
                         mensagem: 'Já existe outro cargo cadastrado com este nome'
@@ -208,11 +209,12 @@ class CargoService {
             if (
                 isNaN(nivelNumerico) ||
                 !Number.isInteger(nivelNumerico) ||
-                nivelNumerico < 1
+                nivelNumerico < 1 ||
+                nivelNumerico > 3
             ) {
                 throw {
                     status: 400,
-                    mensagem: 'Nível de acesso deve ser um número inteiro maior ou igual a 1'
+                    mensagem: 'Nível de acesso deve ser um número inteiro entre 1 e 3'
                 };
             }
 

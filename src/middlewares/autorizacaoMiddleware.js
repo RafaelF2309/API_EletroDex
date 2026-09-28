@@ -105,7 +105,8 @@ function autorizarCadastroUsuario() {
                 });
             }
 
-            const jwtSecret = process.env.JWT_SECRET || 'eletrodex_secret_key_2026_super_segura';
+            const { getJwtSecret } = require('../config/auth');
+            const jwtSecret = getJwtSecret();
             let decoded;
             try {
                 decoded = jwt.verify(partes[1], jwtSecret);
