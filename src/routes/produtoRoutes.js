@@ -1,33 +1,53 @@
 const express = require('express');
 const router = express.Router();
+
 const upload = require('../config/multer');
 const ProdutoController = require('../controllers/ProdutoController');
+
 const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
 const validateImageContent = require('../middlewares/imageValidation');
 
+// GET /api/produtos
 router.get('/', ProdutoController.listar);
 
-// GET /produtos/abaixo-do-minimo
-router.get('/abaixo-do-minimo', ProdutoController.listarAbaixoDoMinimo);
+// GET /api/produtos/abaixo-do-minimo
+router.get(
+    '/abaixo-do-minimo',
+    ProdutoController.listarAbaixoDoMinimo
+);
 
-// GET /produtos/:id
-router.get('/:id', ProdutoController.buscarPorId);
+// GET /api/produtos/:id
+router.get(
+    '/:id',
+    ProdutoController.buscarPorId
+);
 
-// POST /produtos (Restrito a Estoquista ou Gerente)
-router.post('/', 
+// POST /api/produtos
+// Estoquista ou Gerente
+router.post(
+    '/',
     permitirNivel(2),
     upload.single('imagem'),
     validateImageContent,
-    ProdutoController.criar);
+    ProdutoController.criar
+);
 
-// PATCH /produtos/:id (Restrito a Estoquista ou Gerente)
-router.patch('/:id', 
+// PATCH /api/produtos/:id
+// Estoquista ou Gerente
+router.patch(
+    '/:id',
     permitirNivel(2),
-    upload.single('imagem'), 
+    upload.single('imagem'),
     validateImageContent,
-    ProdutoController.atualizar);
+    ProdutoController.atualizar
+);
 
-// DELETE /produtos/:id (Operação sensível: restrita a Gerente)
-router.delete('/:id', permitirNivel(3), ProdutoController.remover);
+// DELETE /api/produtos/:id
+// Apenas Gerente
+router.delete(
+    '/:id',
+    permitirNivel(3),
+    ProdutoController.remover
+);
 
 module.exports = router;

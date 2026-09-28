@@ -1,18 +1,51 @@
 const express = require('express');
 const router = express.Router();
+
 const CargoController = require('../controllers/CargoController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
 
-// GET /cargos (Permite listar cargos para cadastro e consulta)
-router.get('/', CargoController.listar);
+const {
+    permitirNivel
+} = require('../middlewares/autorizacaoMiddleware');
 
-// GET /cargos/:id
-router.get('/:id', CargoController.buscarPorId);
+// GET /api/cargos
+// Consulta pública para facilitar seleção de cargos.
+router.get(
+    '/',
+    CargoController.listar
+);
 
-// Rotas de alteração protegidas por autenticação JWT e restritas a Gerente (nível 3)
-router.post('/', authMiddleware, permitirNivel(3), CargoController.criar);
-router.patch('/:id', authMiddleware, permitirNivel(3), CargoController.atualizar);
-router.delete('/:id', authMiddleware, permitirNivel(3), CargoController.remover);
+// GET /api/cargos/:id
+router.get(
+    '/:id',
+    CargoController.buscarPorId
+);
+
+// POST /api/cargos
+// Apenas Gerente
+router.post(
+    '/',
+    authMiddleware,
+    permitirNivel(3),
+    CargoController.criar
+);
+
+// PATCH /api/cargos/:id
+// Apenas Gerente
+router.patch(
+    '/:id',
+    authMiddleware,
+    permitirNivel(3),
+    CargoController.atualizar
+);
+
+// DELETE /api/cargos/:id
+// Apenas Gerente
+router.delete(
+    '/:id',
+    authMiddleware,
+    permitirNivel(3),
+    CargoController.remover
+);
 
 module.exports = router;

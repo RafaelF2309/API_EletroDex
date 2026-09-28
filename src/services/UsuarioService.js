@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+
 const UsuarioRepository = require('../repositories/UsuarioRepository');
 const CargoRepository = require('../repositories/CargoRepository');
 
@@ -15,6 +16,7 @@ class UsuarioService {
     }
 
     async buscarUsuarioPorId(id) {
+
         if (!id || isNaN(id)) {
             throw {
                 status: 400,
@@ -48,7 +50,7 @@ class UsuarioService {
             foto_perfil
         } = dados;
 
-        // Verificar campos obrigatórios
+        // Campos obrigatórios
         if (!nome || !email || !senha || !setor || !id_cargo) {
             throw {
                 status: 400,
@@ -56,7 +58,7 @@ class UsuarioService {
             };
         }
 
-        // Verificar se o cargo é válido
+        // Validar ID do cargo
         if (isNaN(id_cargo)) {
             throw {
                 status: 400,
@@ -64,7 +66,11 @@ class UsuarioService {
             };
         }
 
-        const cargoExiste = await CargoRepository.buscarPorId(Number(id_cargo));
+        // Verificar se o cargo existe
+        const cargoExiste = await CargoRepository.buscarPorId(
+            Number(id_cargo)
+        );
+
         if (!cargoExiste) {
             throw {
                 status: 404,
@@ -77,9 +83,11 @@ class UsuarioService {
             .trim()
             .toLowerCase();
 
-        // Verificar se já existe usuário com esse e-mail
+        // Verificar e-mail duplicado
         const usuarioExistente =
-            await UsuarioRepository.buscarPorEmail(emailFormatado);
+            await UsuarioRepository.buscarPorEmail(
+                emailFormatado
+            );
 
         if (usuarioExistente) {
             throw {
@@ -88,12 +96,10 @@ class UsuarioService {
             };
         }
 
-        // Hash da senha
-        const saltRounds = 10;
-
+        // Criptografar senha
         const senhaHash = await bcrypt.hash(
             String(senha),
-            saltRounds
+            10
         );
 
         // Criar usuário
@@ -200,7 +206,6 @@ class UsuarioService {
             senha !== null &&
             String(senha).trim() !== ''
         ) {
-
             dadosAtualizados.senha =
                 await bcrypt.hash(
                     String(senha),
@@ -239,7 +244,11 @@ class UsuarioService {
                 };
             }
 
-            const cargoExiste = await CargoRepository.buscarPorId(Number(id_cargo));
+            const cargoExiste =
+                await CargoRepository.buscarPorId(
+                    Number(id_cargo)
+                );
+
             if (!cargoExiste) {
                 throw {
                     status: 404,
@@ -251,11 +260,14 @@ class UsuarioService {
         }
 
         // Foto
-        if (foto_perfil !== undefined && foto_perfil !== null) {
+        if (
+            foto_perfil !== undefined &&
+            foto_perfil !== null
+        ) {
             dadosAtualizados.foto_perfil = foto_perfil;
         }
 
-        // Verificar se existe alguma alteração
+        // Nenhuma alteração
         if (Object.keys(dadosAtualizados).length === 0) {
             throw {
                 status: 400,
@@ -297,7 +309,9 @@ class UsuarioService {
             };
         }
 
-        const dependencias = await UsuarioRepository.contarDependencias(id);
+        const dependencias =
+            await UsuarioRepository.contarDependencias(id);
+
         if (dependencias > 0) {
             throw {
                 status: 409,

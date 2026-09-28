@@ -10,18 +10,24 @@ const loteRoutes = require('./loteRoutes');
 const estoqueRoutes = require('./estoqueRoutes');
 const entradaRoutes = require('./entradaRoutes');
 const saidaRoutes = require('./saidaRoutes');
+
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Rota de Autenticação (Pública: POST /api/auth/login)
+// Autenticação
+// POST /api/auth/login
 router.use('/auth', authRoutes);
 
-// Rotas de Cargos (GET público para formulários, POST/PATCH/DELETE protegidos)
+// Cargos
+// As próprias rotas de cargo controlam autenticação/autorização
 router.use('/cargos', cargoRoutes);
 
-// Rotas de Usuários (contém POST especial com autorizarCadastroUsuario e demais GET/PATCH/DELETE protegidos)
+// Usuários
+// O cadastro possui uma regra especial:
+// primeiro usuário pode ser criado sem login.
+// Depois disso, exige autenticação e nível de gerente.
 router.use('/usuarios', usuarioRoutes);
 
-// Rotas protegidas por Autenticação JWT
+// Rotas protegidas por JWT
 router.use('/fornecedores', authMiddleware, fornecedorRoutes);
 router.use('/produtos', authMiddleware, produtoRoutes);
 router.use('/lotes', authMiddleware, loteRoutes);

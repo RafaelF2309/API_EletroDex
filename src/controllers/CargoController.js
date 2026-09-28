@@ -1,48 +1,103 @@
 const CargoService = require('../services/CargoService');
 
 class CargoController {
+
     async listar(req, res) {
         try {
             const resultado = await CargoService.listarCargos();
-            return res.status(200).json(resultado);
+
+            return res
+                .status(200)
+                .json(resultado);
+
         } catch (erro) {
-            return res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            return res
+                .status(erro.status || 500)
+                .json({
+                    sucesso: false,
+                    mensagem: erro.mensagem || erro.message
+                });
         }
     }
 
     async buscarPorId(req, res) {
         try {
-            const resultado = await CargoService.buscarCargoPorId(req.params.id);
-            return res.status(200).json(resultado);
+            const resultado = await CargoService.buscarCargoPorId(
+                req.params.id
+            );
+
+            return res
+                .status(200)
+                .json(resultado);
+
         } catch (erro) {
-            return res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            return res
+                .status(erro.status || 500)
+                .json({
+                    sucesso: false,
+                    mensagem: erro.mensagem || erro.message
+                });
         }
     }
 
     async criar(req, res) {
         try {
-            const resultado = await CargoService.criarCargo(req.body);
-            return res.status(201).json(resultado);
+            const resultado = await CargoService.criarCargo(
+                req.body
+            );
+
+            return res
+                .status(201)
+                .json(resultado);
+
         } catch (erro) {
-            return res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            return res
+                .status(erro.status || 500)
+                .json({
+                    sucesso: false,
+                    mensagem: erro.mensagem || erro.message
+                });
         }
     }
 
     async atualizar(req, res) {
         try {
-            const resultado = await CargoService.atualizarCargo(req.params.id, req.body);
-            return res.status(200).json(resultado);
+            const resultado = await CargoService.atualizarCargo(
+                req.params.id,
+                req.body
+            );
+
+            return res
+                .status(200)
+                .json(resultado);
+
         } catch (erro) {
-            return res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            return res
+                .status(erro.status || 500)
+                .json({
+                    sucesso: false,
+                    mensagem: erro.mensagem || erro.message
+                });
         }
     }
 
     async remover(req, res) {
         try {
-            const resultado = await CargoService.removerCargo(req.params.id);
-            return res.status(200).json(resultado);
+            const resultado = await CargoService.removerCargo(
+                req.params.id
+            );
+
+            return res
+                .status(200)
+                .json(resultado);
+
         } catch (erro) {
-            return res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            return res
+                .status(erro.status || 500)
+                .json({
+                    sucesso: false,
+                    mensagem: erro.mensagem || erro.message
+                });
         }
     }
 }
