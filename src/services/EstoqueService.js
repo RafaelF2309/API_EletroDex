@@ -20,14 +20,10 @@ class EstoqueService {
             ...e,
             qtd_atual: Number(e.qtd_atual),
             estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0,
-            abaixo_do_minimo: true
+            abaixo_do_minimo: true,
+            quantidade_repor: Number(e.quantidade_repor ?? Math.max(0, (e.estoque_minimo || 0) - e.qtd_atual))
         }));
         return { sucesso: true, dados: formatados, total: formatados.length };
-    }
-
-    async listarEstoquesAbaixoDoMinimo() {
-        const estoques = await EstoqueRepository.listarAbaixoDoMinimo();
-        return { sucesso: true, dados: estoques, total: estoques.length };
     }
 
     async ajustarEstoque(id, dados, id_usuario) {

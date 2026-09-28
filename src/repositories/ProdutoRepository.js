@@ -12,7 +12,8 @@ class ProdutoRepository {
                 p.preco,
                 p.imagem,
                 CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS qtd_atual,
-                (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo) AS abaixo_do_minimo
+                ((p.estoque_minimo > 0 AND CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo)
+                    OR (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) < p.estoque_minimo)) AS abaixo_do_minimo
             FROM produto p
             LEFT JOIN estoque e ON p.id_produto = e.id_produto
             GROUP BY p.id_produto, p.nome, p.descricao, p.estoque_minimo, p.cod_barras, p.preco, p.imagem
@@ -32,7 +33,8 @@ class ProdutoRepository {
                 p.preco,
                 p.imagem,
                 CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS qtd_atual,
-                (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo) AS abaixo_do_minimo
+                ((p.estoque_minimo > 0 AND CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo)
+                    OR (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) < p.estoque_minimo)) AS abaixo_do_minimo
             FROM produto p
             LEFT JOIN estoque e ON p.id_produto = e.id_produto
             WHERE p.id_produto = ?
@@ -54,12 +56,13 @@ class ProdutoRepository {
                 p.imagem,
                 CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS qtd_atual,
                 1 AS abaixo_do_minimo,
-                CAST(p.estoque_minimo - COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS diferenca_para_minimo
+                GREATEST(0, CAST(p.estoque_minimo - COALESCE(SUM(e.qtd_atual), 0) AS SIGNED)) AS diferenca_para_minimo
             FROM produto p
             LEFT JOIN estoque e ON p.id_produto = e.id_produto
             GROUP BY p.id_produto, p.nome, p.descricao, p.estoque_minimo, p.cod_barras, p.preco, p.imagem
-            HAVING CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo
-            ORDER BY p.id_produto DESC`
+            HAVING (p.estoque_minimo > 0 AND CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo)
+                OR (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) < p.estoque_minimo)
+            ORDER BY diferenca_para_minimo DESC, p.nome ASC`
         );
         return produtos;
     }

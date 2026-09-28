@@ -64,11 +64,7 @@ class UsuarioService {
             };
         }
 
-<<<<<<< HEAD
-        const cargoExiste = await CargoRepository.buscarPorId(id_cargo);
-=======
-        const cargoExiste = await UsuarioRepository.buscarCargoPorId(Number(id_cargo));
->>>>>>> 6336b4dfb45c281e5aea49faff9ab12de2caf7bb
+        const cargoExiste = await CargoRepository.buscarPorId(Number(id_cargo));
         if (!cargoExiste) {
             throw {
                 status: 404,
@@ -243,11 +239,7 @@ class UsuarioService {
                 };
             }
 
-<<<<<<< HEAD
-            const cargoExiste = await CargoRepository.buscarPorId(id_cargo);
-=======
-            const cargoExiste = await UsuarioRepository.buscarCargoPorId(Number(id_cargo));
->>>>>>> 6336b4dfb45c281e5aea49faff9ab12de2caf7bb
+            const cargoExiste = await CargoRepository.buscarPorId(Number(id_cargo));
             if (!cargoExiste) {
                 throw {
                     status: 404,
