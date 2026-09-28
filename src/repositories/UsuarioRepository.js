@@ -2,6 +2,15 @@ const pool = require('../config/database');
 
 class UsuarioRepository {
 
+    async buscarCargoPorId(id) {
+        const [cargos] = await pool.query(
+            'SELECT id_cargo, nome_cargo, descricao, nivel_acesso FROM cargo WHERE id_cargo = ?',
+            [id]
+        );
+
+        return cargos[0];
+    }
+
     async listarTodos() {
 
         const [usuarios] = await pool.query(`
@@ -58,6 +67,17 @@ class UsuarioRepository {
         `, [email]);
 
         return usuarios[0];
+    }
+
+    async contarDependencias(id) {
+        const [resultados] = await pool.query(
+            `SELECT
+                (SELECT COUNT(*) FROM entrada WHERE id_usuario = ?) +
+                (SELECT COUNT(*) FROM saida WHERE id_usuario = ?) +
+                (SELECT COUNT(*) FROM ajustes WHERE id_usuario = ?) AS total`,
+            [id, id, id]
+        );
+        return Number(resultados[0].total);
     }
 
     async criar(dados) {

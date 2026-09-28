@@ -46,6 +46,19 @@ class EstoqueController {
         }
     }
 
+    async ajustar(req, res) {
+        try {
+            const resultado = await EstoqueService.ajustarEstoque(
+                req.params.id,
+                req.body,
+                req.usuario.id_usuario
+            );
+            res.status(200).json(resultado);
+        } catch (erro) {
+            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+        }
+    }
+
     async remover(req, res) {
         try {
             const resultado = await EstoqueService.removerEstoque(req.params.id);

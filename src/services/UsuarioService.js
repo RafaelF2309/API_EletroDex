@@ -64,7 +64,11 @@ class UsuarioService {
             };
         }
 
+<<<<<<< HEAD
         const cargoExiste = await CargoRepository.buscarPorId(id_cargo);
+=======
+        const cargoExiste = await UsuarioRepository.buscarCargoPorId(Number(id_cargo));
+>>>>>>> 6336b4dfb45c281e5aea49faff9ab12de2caf7bb
         if (!cargoExiste) {
             throw {
                 status: 404,
@@ -239,7 +243,11 @@ class UsuarioService {
                 };
             }
 
+<<<<<<< HEAD
             const cargoExiste = await CargoRepository.buscarPorId(id_cargo);
+=======
+            const cargoExiste = await UsuarioRepository.buscarCargoPorId(Number(id_cargo));
+>>>>>>> 6336b4dfb45c281e5aea49faff9ab12de2caf7bb
             if (!cargoExiste) {
                 throw {
                     status: 404,
@@ -294,6 +302,14 @@ class UsuarioService {
             throw {
                 status: 404,
                 mensagem: 'Usuário não encontrado'
+            };
+        }
+
+        const dependencias = await UsuarioRepository.contarDependencias(id);
+        if (dependencias > 0) {
+            throw {
+                status: 409,
+                mensagem: 'Usuário possui movimentações ou ajustes vinculados e não pode ser removido'
             };
         }
 

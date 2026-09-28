@@ -1,10 +1,9 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const UsuarioRepository = require('../repositories/UsuarioRepository');
+const AuthService = require('../services/AuthService');
 
 class AuthController {
-    async login(req, res, next) {
+    async login(req, res) {
         try {
+<<<<<<< HEAD
             const { email, senha } = req.body;
 
             // Verificar se os campos foram enviados
@@ -74,11 +73,14 @@ class AuthController {
                 usuario: usuarioSeguro
             });
 
+=======
+            const resultado = await AuthService.login(req.body);
+            return res.status(200).json(resultado);
+>>>>>>> 6336b4dfb45c281e5aea49faff9ab12de2caf7bb
         } catch (erro) {
-            console.error('Erro no login:', erro);
-            return res.status(500).json({
+            return res.status(erro.status || 500).json({
                 sucesso: false,
-                mensagem: 'Erro interno ao realizar login'
+                mensagem: erro.mensagem || 'Erro interno ao realizar login'
             });
         }
     }

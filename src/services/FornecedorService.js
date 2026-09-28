@@ -76,6 +76,14 @@ class FornecedorService {
             throw { status: 404, mensagem: 'Fornecedor não encontrado' };
         }
 
+        const dependencias = await FornecedorRepository.contarDependencias(id);
+        if (dependencias > 0) {
+            throw {
+                status: 409,
+                mensagem: 'Fornecedor possui lotes ou movimentações vinculadas e não pode ser removido'
+            };
+        }
+
         await FornecedorRepository.remover(id);
         return { sucesso: true, mensagem: 'Fornecedor removido com sucesso' };
     }
