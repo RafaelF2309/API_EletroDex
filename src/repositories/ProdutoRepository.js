@@ -3,17 +3,65 @@ const pool = require('../config/database');
 class ProdutoRepository {
     async listarTodos() {
         const [produtos] = await pool.query(
-            'SELECT * FROM produto ORDER BY id_produto DESC'
+            `SELECT 
+                p.id_produto,
+                p.nome,
+                p.descricao,
+                p.estoque_minimo,
+                p.cod_barras,
+                p.preco,
+                p.imagem,
+                CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS qtd_atual,
+                (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo) AS abaixo_do_minimo
+            FROM produto p
+            LEFT JOIN estoque e ON p.id_produto = e.id_produto
+            GROUP BY p.id_produto, p.nome, p.descricao, p.estoque_minimo, p.cod_barras, p.preco, p.imagem
+            ORDER BY p.id_produto DESC`
         );
         return produtos;
     }
 
     async buscarPorId(id) {
         const [produtos] = await pool.query(
-            'SELECT * FROM produto WHERE id_produto = ?',
+            `SELECT 
+                p.id_produto,
+                p.nome,
+                p.descricao,
+                p.estoque_minimo,
+                p.cod_barras,
+                p.preco,
+                p.imagem,
+                CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS qtd_atual,
+                (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo) AS abaixo_do_minimo
+            FROM produto p
+            LEFT JOIN estoque e ON p.id_produto = e.id_produto
+            WHERE p.id_produto = ?
+            GROUP BY p.id_produto, p.nome, p.descricao, p.estoque_minimo, p.cod_barras, p.preco, p.imagem`,
             [id]
         );
         return produtos[0];
+    }
+
+    async listarAbaixoDoMinimo() {
+        const [produtos] = await pool.query(
+            `SELECT 
+                p.id_produto,
+                p.nome,
+                p.descricao,
+                p.estoque_minimo,
+                p.cod_barras,
+                p.preco,
+                p.imagem,
+                CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS qtd_atual,
+                1 AS abaixo_do_minimo,
+                CAST(p.estoque_minimo - COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) AS diferenca_para_minimo
+            FROM produto p
+            LEFT JOIN estoque e ON p.id_produto = e.id_produto
+            GROUP BY p.id_produto, p.nome, p.descricao, p.estoque_minimo, p.cod_barras, p.preco, p.imagem
+            HAVING CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) <= p.estoque_minimo
+            ORDER BY p.id_produto DESC`
+        );
+        return produtos;
     }
 
     async buscarPorCodBarras(cod_barras) {

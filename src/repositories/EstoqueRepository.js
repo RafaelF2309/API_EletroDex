@@ -3,17 +3,61 @@ const pool = require('../config/database');
 class EstoqueRepository {
     async listarTodos() {
         const [estoques] = await pool.query(
-            'SELECT * FROM estoque ORDER BY id_estoque DESC'
+            `SELECT 
+                e.id_estoque,
+                e.id_produto,
+                e.id_lote,
+                e.qtd_atual,
+                e.localizacao_corredor,
+                e.localizacao_prateleira,
+                p.nome AS nome_produto,
+                p.estoque_minimo,
+                (e.qtd_atual <= p.estoque_minimo) AS abaixo_do_minimo
+            FROM estoque e
+            LEFT JOIN produto p ON e.id_produto = p.id_produto
+            ORDER BY e.id_estoque DESC`
         );
         return estoques;
     }
 
     async buscarPorId(id) {
         const [estoques] = await pool.query(
-            'SELECT * FROM estoque WHERE id_estoque = ?',
+            `SELECT 
+                e.id_estoque,
+                e.id_produto,
+                e.id_lote,
+                e.qtd_atual,
+                e.localizacao_corredor,
+                e.localizacao_prateleira,
+                p.nome AS nome_produto,
+                p.estoque_minimo,
+                (e.qtd_atual <= p.estoque_minimo) AS abaixo_do_minimo
+            FROM estoque e
+            LEFT JOIN produto p ON e.id_produto = p.id_produto
+            WHERE e.id_estoque = ?`,
             [id]
         );
         return estoques[0];
+    }
+
+    async listarAbaixoDoMinimo() {
+        const [estoques] = await pool.query(
+            `SELECT 
+                e.id_estoque,
+                e.id_produto,
+                e.id_lote,
+                e.qtd_atual,
+                e.localizacao_corredor,
+                e.localizacao_prateleira,
+                p.nome AS nome_produto,
+                p.estoque_minimo,
+                1 AS abaixo_do_minimo
+            FROM estoque e
+            INNER JOIN produto p ON e.id_produto = p.id_produto
+            WHERE e.qtd_atual <= p.estoque_minimo
+            ORDER BY e.id_estoque DESC`
+        );
+        return estoques;
     }
 
     async buscarPorProdutoELote(id_produto, numero_lote) {

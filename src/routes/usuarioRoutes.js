@@ -3,14 +3,15 @@ const router = express.Router();
 const upload = require('../config/multer');
 const UsuarioController = require('../controllers/UsuarioController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const { permitirNivel, autorizarCadastroUsuario } = require('../middlewares/autorizacaoMiddleware');
 
-// POST /usuarios (Cadastro público)
-router.post('/', upload.single('imagem'), UsuarioController.criar);
+// POST /usuarios (Cadastro inicial ou restrito a Gerentes caso já existam usuários)
+router.post('/', autorizarCadastroUsuario(), upload.single('imagem'), UsuarioController.criar);
 
 // Rotas de usuários protegidas por JWT
-router.get('/', authMiddleware, UsuarioController.listar);
+router.get('/', authMiddleware, permitirNivel(2), UsuarioController.listar);
 router.get('/:id', authMiddleware, UsuarioController.buscarPorId);
 router.patch('/:id', authMiddleware, upload.single('imagem'), UsuarioController.atualizar);
-router.delete('/:id', authMiddleware, UsuarioController.remover);
+router.delete('/:id', authMiddleware, permitirNivel(3), UsuarioController.remover);
 
 module.exports = router;

@@ -1,18 +1,9 @@
-const EstoqueService = require('../services/EstoqueService');
+const CargoService = require('../services/CargoService');
 
-class EstoqueController {
+class CargoController {
     async listar(req, res) {
         try {
-            const resultado = await EstoqueService.listarEstoques();
-            res.status(200).json(resultado);
-        } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
-        }
-    }
-
-    async listarAbaixoDoMinimo(req, res) {
-        try {
-            const resultado = await EstoqueService.listarEstoquesAbaixoDoMinimo();
+            const resultado = await CargoService.listarCargos();
             res.status(200).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
@@ -21,7 +12,7 @@ class EstoqueController {
 
     async buscarPorId(req, res) {
         try {
-            const resultado = await EstoqueService.buscarEstoquePorId(req.params.id);
+            const resultado = await CargoService.buscarCargoPorId(req.params.id);
             res.status(200).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
@@ -30,7 +21,7 @@ class EstoqueController {
 
     async criar(req, res) {
         try {
-            const resultado = await EstoqueService.criarEstoque(req.body);
+            const resultado = await CargoService.criarCargo(req.body);
             res.status(201).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
@@ -39,7 +30,7 @@ class EstoqueController {
 
     async atualizar(req, res) {
         try {
-            const resultado = await EstoqueService.atualizarEstoque(req.params.id, req.body);
+            const resultado = await CargoService.atualizarCargo(req.params.id, req.body);
             res.status(200).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
@@ -48,7 +39,7 @@ class EstoqueController {
 
     async remover(req, res) {
         try {
-            const resultado = await EstoqueService.removerEstoque(req.params.id);
+            const resultado = await CargoService.removerCargo(req.params.id);
             res.status(200).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
@@ -56,4 +47,4 @@ class EstoqueController {
     }
 }
 
-module.exports = new EstoqueController();
+module.exports = new CargoController();

@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const UsuarioRepository = require('../repositories/UsuarioRepository');
+const CargoRepository = require('../repositories/CargoRepository');
 
 class UsuarioService {
 
@@ -60,6 +61,14 @@ class UsuarioService {
             throw {
                 status: 400,
                 mensagem: 'id_cargo inválido'
+            };
+        }
+
+        const cargoExiste = await CargoRepository.buscarPorId(id_cargo);
+        if (!cargoExiste) {
+            throw {
+                status: 404,
+                mensagem: 'Cargo informado não existe'
             };
         }
 
@@ -227,6 +236,14 @@ class UsuarioService {
                 throw {
                     status: 400,
                     mensagem: 'id_cargo inválido'
+                };
+            }
+
+            const cargoExiste = await CargoRepository.buscarPorId(id_cargo);
+            if (!cargoExiste) {
+                throw {
+                    status: 404,
+                    mensagem: 'Cargo informado não existe'
                 };
             }
 

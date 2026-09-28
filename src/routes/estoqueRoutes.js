@@ -5,6 +5,9 @@ const EstoqueController = require('../controllers/EstoqueController');
 // GET /estoque
 router.get('/', EstoqueController.listar);
 
+// GET /estoque/abaixo-do-minimo
+router.get('/abaixo-do-minimo', EstoqueController.listarAbaixoDoMinimo);
+
 // GET /estoque/:id
 router.get('/:id', EstoqueController.buscarPorId);
 

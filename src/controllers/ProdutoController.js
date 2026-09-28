@@ -10,6 +10,15 @@ class ProdutoController {
         }
     }
 
+    async listarAbaixoDoMinimo(req, res, next) {
+        try {
+            const resultado = await ProdutoService.listarProdutosAbaixoDoMinimo();
+            return res.status(200).json(resultado);
+        } catch (erro) {
+            next(erro);
+        }
+    }
+
     async buscarPorId(req, res, next) {
         try {
             const resultado = await ProdutoService.buscarProdutoPorId(req.params.id);

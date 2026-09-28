@@ -5,7 +5,24 @@ const LoteRepository = require('../repositories/LoteRepository');
 class EstoqueService {
     async listarEstoques() {
         const estoques = await EstoqueRepository.listarTodos();
-        return { sucesso: true, dados: estoques, total: estoques.length };
+        const formatados = estoques.map(e => ({
+            ...e,
+            qtd_atual: Number(e.qtd_atual),
+            estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0,
+            abaixo_do_minimo: Boolean(e.abaixo_do_minimo)
+        }));
+        return { sucesso: true, dados: formatados, total: formatados.length };
+    }
+
+    async listarEstoquesAbaixoDoMinimo() {
+        const estoques = await EstoqueRepository.listarAbaixoDoMinimo();
+        const formatados = estoques.map(e => ({
+            ...e,
+            qtd_atual: Number(e.qtd_atual),
+            estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0,
+            abaixo_do_minimo: true
+        }));
+        return { sucesso: true, dados: formatados, total: formatados.length };
     }
 
     async buscarEstoquePorId(id) {
@@ -19,7 +36,15 @@ class EstoqueService {
             throw { status: 404, mensagem: 'Registro de estoque não encontrado' };
         }
 
-        return { sucesso: true, dados: estoque };
+        return {
+            sucesso: true,
+            dados: {
+                ...estoque,
+                qtd_atual: Number(estoque.qtd_atual),
+                estoque_minimo: estoque.estoque_minimo != null ? Number(estoque.estoque_minimo) : 0,
+                abaixo_do_minimo: Boolean(estoque.abaixo_do_minimo)
+            }
+        };
     }
 
     async criarEstoque(dados) {
@@ -49,9 +74,9 @@ class EstoqueService {
         const novoId = await EstoqueRepository.criar({
             id_produto, id_lote, qtd_atual, localizacao_corredor, localizacao_prateleira
         });
-        const estoqueCriado = await EstoqueRepository.buscarPorId(novoId);
+        const estoqueCriado = await this.buscarEstoquePorId(novoId);
 
-        return { sucesso: true, mensagem: 'Registro de estoque criado com sucesso', dados: estoqueCriado };
+        return { sucesso: true, mensagem: 'Registro de estoque criado com sucesso', dados: estoqueCriado.dados };
     }
 
     async atualizarEstoque(id, dados) {
@@ -83,9 +108,9 @@ class EstoqueService {
         }
 
         await EstoqueRepository.atualizar(id, dadosAtualizados);
-        const estoqueAtualizado = await EstoqueRepository.buscarPorId(id);
+        const estoqueAtualizado = await this.buscarEstoquePorId(id);
 
-        return { sucesso: true, mensagem: 'Registro de estoque atualizado com sucesso', dados: estoqueAtualizado };
+        return { sucesso: true, mensagem: 'Registro de estoque atualizado com sucesso', dados: estoqueAtualizado.dados };
     }
 
     async removerEstoque(id) {
