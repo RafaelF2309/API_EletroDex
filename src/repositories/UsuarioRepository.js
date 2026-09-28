@@ -54,17 +54,14 @@ class UsuarioRepository {
     }
 
     async buscarPorEmail(email) {
-
-        const [usuarios] = await pool.query(`
-            SELECT
-                u.*,
-                c.nome_cargo,
-                c.nivel_acesso
-            FROM usuario u
-            INNER JOIN cargo c
-                ON u.id_cargo = c.id_cargo
-            WHERE u.email = ?
-        `, [email]);
+        const [usuarios] = await pool.query(
+            `
+            SELECT *
+            FROM usuario
+            WHERE email = ?
+            `,
+            [email]
+        );
 
         return usuarios[0];
     }
