@@ -1,10 +1,14 @@
 const express = require('express');
+
 const router = express.Router();
 
 const CargoController = require('../controllers/CargoController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
-const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
+
+const {
+    permitirNivel
+} = require('../middlewares/autorizacaoMiddleware');
 
 // GET /api/cargos
 // Consulta pública para facilitar seleção de cargos.
