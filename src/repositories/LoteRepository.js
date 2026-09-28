@@ -33,6 +33,7 @@ class LoteRepository {
                 (SELECT COUNT(*) FROM ajustes WHERE id_lote = ?) AS total`,
             [id, id, id, id]
         );
+
         return Number(resultados[0].total);
     }
 
@@ -41,7 +42,44 @@ class LoteRepository {
             'INSERT INTO lote SET ?',
             [dados]
         );
+
         return resultado.insertId;
+    }
+
+    async criarComEstoque(dadosLote, dadosEstoque) {
+        const connection = await pool.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            const [resultadoLote] = await connection.query(
+                'INSERT INTO lote SET ?',
+                [dadosLote]
+            );
+
+            const idLote = resultadoLote.insertId;
+
+            const dadosEstoqueCompleto = {
+                ...dadosEstoque,
+                id_lote: idLote
+            };
+
+            await connection.query(
+                'INSERT INTO estoque SET ?',
+                [dadosEstoqueCompleto]
+            );
+
+            await connection.commit();
+
+            return idLote;
+
+        } catch (erro) {
+            await connection.rollback();
+            throw erro;
+
+        } finally {
+            connection.release();
+        }
     }
 
     async atualizar(id, dados) {
@@ -49,6 +87,7 @@ class LoteRepository {
             'UPDATE lote SET ? WHERE id_lote = ?',
             [dados, id]
         );
+
         return resultado.affectedRows > 0;
     }
 
@@ -57,6 +96,7 @@ class LoteRepository {
             'DELETE FROM lote WHERE id_lote = ?',
             [id]
         );
+
         return resultado.affectedRows > 0;
     }
 }

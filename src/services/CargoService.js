@@ -289,5 +289,5 @@ class CargoService {
         };
     }
 }
-
+    
 module.exports = new CargoService();
