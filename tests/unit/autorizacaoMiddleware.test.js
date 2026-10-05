@@ -106,6 +106,53 @@ describe('autorizacaoMiddleware', () => {
                 .not.toHaveBeenCalled();
         });
 
+        test('deve usar o nível atualizado do banco, mesmo quando o token contém nível maior', async () => {
+
+            req.usuario = {
+                id_usuario: 1,
+                nivel_acesso: 3,
+                setor: 'gerencia'
+            };
+
+            UsuarioRepository.buscarPorId.mockResolvedValue({
+                id_usuario: 1,
+                nivel_acesso: 1,
+                setor: 'vendas',
+                id_cargo: 3,
+                nome_cargo: 'Vendedor'
+            });
+
+            const middleware = autorizar(2);
+
+            await middleware(req, res, next);
+
+            expect(UsuarioRepository.buscarPorId).toHaveBeenCalledWith(1);
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test('deve negar acesso quando o usuário do token foi removido', async () => {
+
+            req.usuario = {
+                id_usuario: 1,
+                nivel_acesso: 3,
+                setor: 'gerencia'
+            };
+
+            UsuarioRepository.buscarPorId.mockResolvedValue(undefined);
+
+            const middleware = autorizar(2);
+
+            await middleware(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({
+                sucesso: false,
+                mensagem: 'Acesso negado: usuário não encontrado ou removido'
+            });
+            expect(next).not.toHaveBeenCalled();
+        });
+
         test('deve buscar o nível de acesso pelo cargo quando não estiver no token', async () => {
 
             req.usuario = {
@@ -504,6 +551,14 @@ describe('autorizacaoMiddleware', () => {
                 setor: 'gerencia'
             });
 
+            UsuarioRepository.buscarPorId.mockResolvedValue({
+                id_usuario: 1,
+                nivel_acesso: 3,
+                setor: 'gerencia',
+                id_cargo: 1,
+                nome_cargo: 'Gerente'
+            });
+
             const middleware =
                 autorizarCadastroUsuario();
 
@@ -515,12 +570,13 @@ describe('autorizacaoMiddleware', () => {
                     'chave-teste'
                 );
 
-            expect(req.usuario)
-                .toEqual({
-                    id_usuario: 1,
-                    nivel_acesso: 3,
-                    setor: 'gerencia'
-                });
+            expect(req.usuario).toMatchObject({
+                id_usuario: 1,
+                nivel_acesso: 3,
+                setor: 'gerencia',
+                id_cargo: 1,
+                nome_cargo: 'Gerente'
+            });
 
             expect(next)
                 .toHaveBeenCalled();
@@ -537,6 +593,14 @@ describe('autorizacaoMiddleware', () => {
                 id_usuario: 2,
                 nivel_acesso: 2,
                 setor: 'estoque'
+            });
+
+            UsuarioRepository.buscarPorId.mockResolvedValue({
+                id_usuario: 2,
+                nivel_acesso: 2,
+                setor: 'estoque',
+                id_cargo: 2,
+                nome_cargo: 'Estoquista'
             });
 
             const middleware =
@@ -558,7 +622,7 @@ describe('autorizacaoMiddleware', () => {
                 .not.toHaveBeenCalled();
         });
 
-        test('deve buscar nível do cargo quando token não possuir nivel_acesso', async () => {
+        test('deve buscar permissões atuais do usuário quando token não possuir nível de acesso', async () => {
 
             UsuarioRepository.contarTotal.mockResolvedValue(5);
 
@@ -570,9 +634,11 @@ describe('autorizacaoMiddleware', () => {
                 id_cargo: 3
             });
 
-            CargoRepository.buscarPorId.mockResolvedValue({
+            UsuarioRepository.buscarPorId.mockResolvedValue({
+                id_usuario: 2,
                 id_cargo: 3,
                 nivel_acesso: 3,
+                setor: 'gerencia',
                 nome_cargo: 'Gerente'
             });
 
@@ -581,8 +647,7 @@ describe('autorizacaoMiddleware', () => {
 
             await middleware(req, res, next);
 
-            expect(CargoRepository.buscarPorId)
-                .toHaveBeenCalledWith(3);
+            expect(UsuarioRepository.buscarPorId).toHaveBeenCalledWith(2);
 
             expect(next)
                 .toHaveBeenCalled();

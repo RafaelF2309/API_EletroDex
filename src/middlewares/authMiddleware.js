@@ -27,7 +27,7 @@ function authMiddleware(req, res, next) {
         // Guarda os dados do usuário na requisição
         req.usuario = decoded;
 
-        next();
+        return next();
     } catch (erro) {
         if (erro.name === 'TokenExpiredError') {
             return res.status(401).json({

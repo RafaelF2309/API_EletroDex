@@ -8,14 +8,19 @@ async function sincronizarPermissoesDoUsuario(req) {
 
     if (req.usuario?.id_usuario) {
         const usuario = await UsuarioRepository.buscarPorId(req.usuario.id_usuario);
-        if (usuario && usuario.nivel_acesso !== undefined) {
-            nivelUsuario = usuario.nivel_acesso;
-            setorUsuario = usuario.setor;
-            req.usuario.nivel_acesso = usuario.nivel_acesso;
-            req.usuario.nome_cargo = usuario.nome_cargo;
-            req.usuario.setor = usuario.setor;
-            req.usuario.id_cargo = usuario.id_cargo;
+        if (!usuario) {
+            throw {
+                status: 401,
+                mensagem: 'Acesso negado: usuário não encontrado ou removido'
+            };
         }
+
+        nivelUsuario = usuario.nivel_acesso;
+        setorUsuario = usuario.setor;
+        req.usuario.nivel_acesso = usuario.nivel_acesso;
+        req.usuario.nome_cargo = usuario.nome_cargo;
+        req.usuario.setor = usuario.setor;
+        req.usuario.id_cargo = usuario.id_cargo;
     } else if (nivelUsuario === undefined && req.usuario?.id_cargo) {
         const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
         if (cargo) {
@@ -78,6 +83,9 @@ function autorizar(opcoes = {}) {
 
             next();
         } catch (erro) {
+            if (erro.status === 401) {
+                return res.status(401).json({ sucesso: false, mensagem: erro.mensagem });
+            }
             console.error('Erro no middleware de autorização:', erro);
             return res.status(500).json({
                 sucesso: false,
@@ -101,7 +109,7 @@ function autorizarCadastroUsuario() {
                 return next();
             }
 
-            authMiddleware(req, res, async () => {
+            return authMiddleware(req, res, async () => {
                 try {
                     const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
 
@@ -114,6 +122,9 @@ function autorizarCadastroUsuario() {
 
                     next();
                 } catch (erroInterno) {
+                    if (erroInterno.status === 401) {
+                        return res.status(401).json({ sucesso: false, mensagem: erroInterno.mensagem });
+                    }
                     console.error('Erro na autorização de cadastro de usuário:', erroInterno);
                     return res.status(500).json({
                         sucesso: false,
@@ -146,12 +157,12 @@ function autorizarVisualizacaoUsuario(nivelMinimoOutros = 2) {
                 });
             }
 
+            const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
+
             const idParam = Number(req.params.id);
             if (req.usuario.id_usuario === idParam) {
                 return next();
             }
-
-            const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
 
             if (nivelUsuario < nivelMinimoOutros) {
                 return res.status(403).json({
@@ -162,6 +173,9 @@ function autorizarVisualizacaoUsuario(nivelMinimoOutros = 2) {
 
             next();
         } catch (erro) {
+            if (erro.status === 401) {
+                return res.status(401).json({ sucesso: false, mensagem: erro.mensagem });
+            }
             console.error('Erro na autorização de visualização de usuário:', erro);
             return res.status(500).json({
                 sucesso: false,
@@ -186,12 +200,12 @@ function autorizarEdicaoUsuario() {
                 });
             }
 
+            const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
+
             const idParam = Number(req.params.id);
             if (req.usuario.id_usuario === idParam) {
                 return next();
             }
-
-            const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
 
             if (nivelUsuario < 3) {
                 return res.status(403).json({
@@ -202,6 +216,9 @@ function autorizarEdicaoUsuario() {
 
             next();
         } catch (erro) {
+            if (erro.status === 401) {
+                return res.status(401).json({ sucesso: false, mensagem: erro.mensagem });
+            }
             console.error('Erro na autorização de edição de usuário:', erro);
             return res.status(500).json({
                 sucesso: false,
