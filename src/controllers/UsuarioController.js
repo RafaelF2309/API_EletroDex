@@ -21,9 +21,9 @@ class UsuarioController {
 
     async criar(req, res, next) {
         try {
-            const dadosUsuario = { 
-                ...req.body, 
-                foto_perfil: req.file ? req.file.filename : (req.body.foto_perfil || null) 
+            const dadosUsuario = {
+                ...req.body,
+                foto_perfil: req.file ? req.file.filename : (req.body.foto_perfil || null)
             };
             const resultado = await UsuarioService.criarUsuario(dadosUsuario);
             return res.status(201).json(resultado);
