@@ -75,6 +75,17 @@ class EstoqueRepository {
         return estoques[0];
     }
 
+    async buscarPorLote(id_lote) {
+        const [estoques] = await pool.query(
+            `SELECT e.*
+             FROM estoque e
+             WHERE e.id_lote = ?`,
+            [id_lote]
+        );
+
+        return estoques[0];
+    }
+
     async alterarQuantidade(id_estoque, diferenca) {
         const [resultado] = await pool.query(
             `UPDATE estoque

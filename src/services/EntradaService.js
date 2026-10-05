@@ -3,6 +3,7 @@ const UsuarioRepository = require("../repositories/UsuarioRepository");
 const FornecedorRepository = require("../repositories/FornecedorRepository");
 const ProdutoRepository = require("../repositories/ProdutoRepository");
 const EstoqueRepository = require("../repositories/EstoqueRepository");
+const LoteRepository = require("../repositories/LoteRepository");
 
 class EntradaService {
   async listarEntradas() {
@@ -31,7 +32,7 @@ class EntradaService {
       id_fornecedor,
       id_produto,
       data,
-      lote,
+      id_lote,
       quantidade,
       rastreamento,
     } = dados;
@@ -47,13 +48,13 @@ class EntradaService {
       !id_fornecedor ||
       !id_produto ||
       !data ||
-      !lote ||
+      !id_lote ||
       quantidade == null
     ) {
       throw {
         status: 400,
         mensagem:
-          "Campos obrigatórios faltando: id_fornecedor, id_produto, data, lote, quantidade",
+          "Campos obrigatórios faltando: id_fornecedor, id_produto, data, id_lote, quantidade",
       };
     }
 
@@ -83,15 +84,24 @@ class EntradaService {
       throw { status: 404, mensagem: "Produto informado não existe" };
     }
 
-    const estoque = await EstoqueRepository.buscarPorProdutoELote(
-      id_produto,
-      lote,
-    );
+    const lote = await LoteRepository.buscarPorId(id_lote);
+    if (!lote) {
+      throw { status: 404, mensagem: "Lote informado não existe" };
+    }
+
+    if (lote.id_produto !== id_produto) {
+      throw {
+        status: 400,
+        mensagem: "O lote informado não pertence ao produto informado",
+      };
+    }
+
+    const estoque = await EstoqueRepository.buscarPorLote(id_lote);
 
     if (!estoque) {
       throw {
         status: 404,
-        mensagem: "Estoque não encontrado para o produto e lote informados",
+        mensagem: "Estoque não encontrado para o lote informado",
       };
     }
 
@@ -100,7 +110,7 @@ class EntradaService {
       id_fornecedor,
       id_produto,
       data,
-      lote,
+      id_lote,
       quantidade,
       rastreamento: rastreamento ?? null,
     });
@@ -138,7 +148,7 @@ class EntradaService {
       id_fornecedor,
       id_produto,
       data,
-      lote,
+      id_lote,
       quantidade,
       rastreamento,
     } = dados;
@@ -191,15 +201,37 @@ class EntradaService {
     }
 
     // =========================
+    // VALIDAR LOTE
+    // =========================
+
+    if (id_lote !== undefined) {
+      const lote = await LoteRepository.buscarPorId(id_lote);
+
+      if (!lote) {
+        throw {
+          status: 404,
+          mensagem: "Lote informado não existe",
+        };
+      }
+
+      // Validar que o lote pertence ao produto (novo ou existente)
+      const produtoParaValidar = id_produto ?? entradaExiste.id_produto;
+      if (lote.id_produto !== produtoParaValidar) {
+        throw {
+          status: 400,
+          mensagem: "O lote informado não pertence ao produto informado",
+        };
+      }
+
+      dadosAtualizados.id_lote = id_lote;
+    }
+
+    // =========================
     // OUTROS CAMPOS
     // =========================
 
     if (data !== undefined) {
       dadosAtualizados.data = data;
-    }
-
-    if (lote !== undefined) {
-      dadosAtualizados.lote = lote;
     }
 
     if (quantidade !== undefined) {
@@ -228,22 +260,28 @@ class EntradaService {
     // DADOS FINAIS
     // =========================
 
-    const produtoAntigo = entradaExiste.id_produto;
-    const loteAntigo = entradaExiste.lote;
+    const idLoteAntigo = entradaExiste.id_lote;
     const quantidadeAntiga = entradaExiste.quantidade;
 
-    const produtoNovo = id_produto ?? produtoAntigo;
-    const loteNovo = lote ?? loteAntigo;
+    const idLoteNovo = id_lote ?? idLoteAntigo;
     const quantidadeNova = quantidade ?? quantidadeAntiga;
+
+    // Se mudou o produto mas não o lote, validar que o lote novo pertence ao produto novo
+    if (id_produto !== undefined && id_lote === undefined) {
+      const loteExistente = await LoteRepository.buscarPorId(idLoteAntigo);
+      if (loteExistente && loteExistente.id_produto !== id_produto) {
+        throw {
+          status: 400,
+          mensagem: "O lote atual não pertence ao novo produto informado. Informe também um novo id_lote.",
+        };
+      }
+    }
 
     // =========================
     // VERIFICA SE O ESTOQUE ANTIGO EXISTE
     // =========================
 
-    const estoqueAntigo = await EstoqueRepository.buscarPorProdutoELote(
-      produtoAntigo,
-      loteAntigo,
-    );
+    const estoqueAntigo = await EstoqueRepository.buscarPorLote(idLoteAntigo);
 
     if (!estoqueAntigo) {
       throw {
@@ -253,21 +291,18 @@ class EntradaService {
     }
 
     // =========================
-    // PRODUTO OU LOTE MUDOU
+    // LOTE MUDOU
     // =========================
 
-    if (produtoNovo !== produtoAntigo || loteNovo !== loteAntigo) {
-      const estoqueNovo = await EstoqueRepository.buscarPorProdutoELote(
-        produtoNovo,
-        loteNovo,
-      );
+    if (idLoteNovo !== idLoteAntigo) {
+      const estoqueNovo = await EstoqueRepository.buscarPorLote(idLoteNovo);
 
       if (!estoqueNovo) {
         throw {
           status: 404,
           mensagem:
-            "Estoque novo não encontrado para o produto e lote informados",
-        };  
+            "Estoque novo não encontrado para o lote informado",
+        };
       }
 
       // Remove a quantidade da entrada antiga
@@ -276,7 +311,7 @@ class EntradaService {
         -quantidadeAntiga,
       );
 
-      // Adiciona a quantidade no novo produto/lote
+      // Adiciona a quantidade no novo lote
       await EstoqueRepository.alterarQuantidade(
         estoqueNovo.id_estoque,
         quantidadeNova,
@@ -284,7 +319,7 @@ class EntradaService {
     }
 
     // =========================
-    // MESMO PRODUTO E MESMO LOTE
+    // MESMO LOTE
     // =========================
     else if (quantidade !== undefined) {
       const diferenca = quantidadeNova - quantidadeAntiga;
