@@ -1,5 +1,5 @@
 const CargoRepository = require('../repositories/CargoRepository');
-const pool = require('../config/database');
+const UsuarioRepository = require('../repositories/UsuarioRepository');
 
 class CargoService {
 
@@ -266,15 +266,9 @@ class CargoService {
             };
         }
 
-        const [usuariosVinculados] =
-            await pool.query(
-                'SELECT COUNT(*) AS total FROM usuario WHERE id_cargo = ?',
-                [id]
-            );
+        const totalVinculados = await UsuarioRepository.contarPorCargo(id);
 
-        if (
-            Number(usuariosVinculados[0].total) > 0
-        ) {
+        if (totalVinculados > 0) {
             throw {
                 status: 409,
                 mensagem: 'Cargo está vinculado a um ou mais usuários e não pode ser removido'

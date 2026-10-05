@@ -27,15 +27,13 @@ describe('EstoqueService', () => {
                     id_estoque: 1,
                     id_produto: 1,
                     qtd_atual: '50',
-                    estoque_minimo: '20',
-                    abaixo_do_minimo: 0
+                    estoque_minimo: '20'
                 },
                 {
                     id_estoque: 2,
                     id_produto: 2,
                     qtd_atual: '10',
-                    estoque_minimo: '15',
-                    abaixo_do_minimo: 1
+                    estoque_minimo: '15'
                 }
             ];
 
@@ -55,15 +53,13 @@ describe('EstoqueService', () => {
                         id_estoque: 1,
                         id_produto: 1,
                         qtd_atual: 50,
-                        estoque_minimo: 20,
-                        abaixo_do_minimo: false
+                        estoque_minimo: 20
                     },
                     {
                         id_estoque: 2,
                         id_produto: 2,
                         qtd_atual: 10,
-                        estoque_minimo: 15,
-                        abaixo_do_minimo: true
+                        estoque_minimo: 15
                     }
                 ],
                 total: 2
@@ -87,82 +83,6 @@ describe('EstoqueService', () => {
     });
 
     // ==========================================
-    // listarEstoquesAbaixoDoMinimo
-    // ==========================================
-
-    describe('listarEstoquesAbaixoDoMinimo', () => {
-
-        test('deve listar estoques abaixo do mínimo', async () => {
-
-            const estoques = [
-                {
-                    id_estoque: 1,
-                    qtd_atual: '5',
-                    estoque_minimo: '10',
-                    quantidade_repor: '5'
-                }
-            ];
-
-            EstoqueRepository.listarAbaixoDoMinimo
-                .mockResolvedValue(estoques);
-
-            const resultado =
-                await EstoqueService.listarEstoquesAbaixoDoMinimo();
-
-            expect(
-                EstoqueRepository.listarAbaixoDoMinimo
-            ).toHaveBeenCalled();
-
-            expect(resultado).toEqual({
-                sucesso: true,
-                dados: [
-                    {
-                        id_estoque: 1,
-                        qtd_atual: 5,
-                        estoque_minimo: 10,
-                        abaixo_do_minimo: true,
-                        quantidade_repor: 5
-                    }
-                ],
-                total: 1
-            });
-        });
-
-        test('deve calcular quantidade a repor quando não vier do banco', async () => {
-
-            EstoqueRepository.listarAbaixoDoMinimo
-                .mockResolvedValue([
-                    {
-                        id_estoque: 1,
-                        qtd_atual: 4,
-                        estoque_minimo: 10
-                    }
-                ]);
-
-            const resultado =
-                await EstoqueService.listarEstoquesAbaixoDoMinimo();
-
-            expect(resultado.dados[0].quantidade_repor)
-                .toBe(6);
-        });
-
-        test('deve retornar lista vazia', async () => {
-
-            EstoqueRepository.listarAbaixoDoMinimo
-                .mockResolvedValue([]);
-
-            const resultado =
-                await EstoqueService.listarEstoquesAbaixoDoMinimo();
-
-            expect(resultado).toEqual({
-                sucesso: true,
-                dados: [],
-                total: 0
-            });
-        });
-    });
-
-    // ==========================================
     // buscarEstoquePorId
     // ==========================================
 
@@ -173,8 +93,7 @@ describe('EstoqueService', () => {
             const estoque = {
                 id_estoque: 1,
                 qtd_atual: '30',
-                estoque_minimo: '10',
-                abaixo_do_minimo: 0
+                estoque_minimo: '10'
             };
 
             EstoqueRepository.buscarPorId
@@ -191,8 +110,7 @@ describe('EstoqueService', () => {
                 dados: {
                     id_estoque: 1,
                     qtd_atual: 30,
-                    estoque_minimo: 10,
-                    abaixo_do_minimo: false
+                    estoque_minimo: 10
                 }
             });
         });
@@ -437,7 +355,6 @@ describe('EstoqueService', () => {
                     id_lote: 2,
                     qtd_atual: '50',
                     estoque_minimo: '10',
-                    abaixo_do_minimo: 0,
                     localizacao_corredor: 'A',
                     localizacao_prateleira: '01'
                 });
@@ -460,7 +377,6 @@ describe('EstoqueService', () => {
                     id_lote: 2,
                     qtd_atual: 50,
                     estoque_minimo: 10,
-                    abaixo_do_minimo: false,
                     localizacao_corredor: 'A',
                     localizacao_prateleira: '01'
                 }

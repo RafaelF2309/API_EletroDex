@@ -11,33 +11,10 @@ class EstoqueRepository {
                 e.localizacao_corredor,
                 e.localizacao_prateleira,
                 p.nome AS nome_produto,
-                p.estoque_minimo,
-                (p.estoque_minimo > 0 AND e.qtd_atual <= p.estoque_minimo) AS abaixo_do_minimo
+                p.estoque_minimo
             FROM estoque e
             LEFT JOIN produto p ON e.id_produto = p.id_produto
             ORDER BY e.id_estoque DESC`
-        );
-        return estoques;
-    }
-
-    async listarAbaixoDoMinimo() {
-        const [estoques] = await pool.query(
-            `SELECT 
-                e.id_estoque,
-                e.id_produto,
-                e.id_lote,
-                e.qtd_atual,
-                e.localizacao_corredor,
-                e.localizacao_prateleira,
-                p.nome AS nome_produto,
-                p.estoque_minimo,
-                1 AS abaixo_do_minimo,
-                GREATEST(0, p.estoque_minimo - e.qtd_atual) AS quantidade_repor
-             FROM estoque e
-             INNER JOIN produto p ON e.id_produto = p.id_produto
-             WHERE (p.estoque_minimo > 0 AND e.qtd_atual <= p.estoque_minimo)
-                OR (e.qtd_atual < p.estoque_minimo)
-             ORDER BY quantidade_repor DESC, p.nome ASC, e.id_estoque DESC`
         );
         return estoques;
     }
@@ -52,8 +29,7 @@ class EstoqueRepository {
                 e.localizacao_corredor,
                 e.localizacao_prateleira,
                 p.nome AS nome_produto,
-                p.estoque_minimo,
-                (p.estoque_minimo > 0 AND e.qtd_atual <= p.estoque_minimo) AS abaixo_do_minimo
+                p.estoque_minimo
             FROM estoque e
             LEFT JOIN produto p ON e.id_produto = p.id_produto
             WHERE e.id_estoque = ?`,

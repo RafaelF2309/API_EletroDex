@@ -196,6 +196,30 @@ describe('UsuarioService', () => {
 
         });
 
+        test('deve rejeitar setor inválido no cadastro', async () => {
+
+            CargoRepository.buscarPorId
+                .mockResolvedValue({
+                    id_cargo: 2,
+                    nome_cargo: 'Estoquista',
+                    nivel_acesso: 2
+                });
+
+            await expect(
+                UsuarioService.criarUsuario({
+                    nome: 'João',
+                    email: 'joao@email.com',
+                    senha: '123456',
+                    setor: 'marketing',
+                    id_cargo: 2
+                })
+            ).rejects.toEqual({
+                status: 400,
+                mensagem: 'Setor inválido. Use: gerencia, estoque ou vendas'
+            });
+
+        });
+
         test('deve rejeitar cargo inexistente', async () => {
 
             CargoRepository.buscarPorId

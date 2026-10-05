@@ -1,5 +1,35 @@
 const CargoRepository = require('../repositories/CargoRepository');
-const pool = require('../config/database');
+const UsuarioRepository = require('../repositories/UsuarioRepository');
+const authMiddleware = require('./authMiddleware');
+
+async function sincronizarPermissoesDoUsuario(req) {
+    let nivelUsuario = req.usuario?.nivel_acesso;
+    let setorUsuario = req.usuario?.setor;
+
+    if (req.usuario?.id_usuario) {
+        const usuario = await UsuarioRepository.buscarPorId(req.usuario.id_usuario);
+        if (usuario && usuario.nivel_acesso !== undefined) {
+            nivelUsuario = usuario.nivel_acesso;
+            setorUsuario = usuario.setor;
+            req.usuario.nivel_acesso = usuario.nivel_acesso;
+            req.usuario.nome_cargo = usuario.nome_cargo;
+            req.usuario.setor = usuario.setor;
+            req.usuario.id_cargo = usuario.id_cargo;
+        }
+    } else if (nivelUsuario === undefined && req.usuario?.id_cargo) {
+        const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
+        if (cargo) {
+            nivelUsuario = cargo.nivel_acesso;
+            req.usuario.nivel_acesso = cargo.nivel_acesso;
+            req.usuario.nome_cargo = cargo.nome_cargo;
+        }
+    }
+
+    return {
+        nivelUsuario: Number(nivelUsuario || 1),
+        setorUsuario
+    };
+}
 
 /**
  * Middleware de Autorização baseado em Nível de Acesso (nivel_acesso) e Setor (setor)
@@ -22,20 +52,8 @@ function autorizar(opcoes = {}) {
                 });
             }
 
-            // Obtém o nivel_acesso do token ou busca pelo id_cargo no banco
-            let nivelUsuario = req.usuario.nivel_acesso;
-            if (nivelUsuario === undefined && req.usuario.id_cargo) {
-                const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
-                if (cargo) {
-                    nivelUsuario = cargo.nivel_acesso;
-                    req.usuario.nivel_acesso = cargo.nivel_acesso;
-                    req.usuario.nome_cargo = cargo.nome_cargo;
-                }
-            }
+            const { nivelUsuario, setorUsuario } = await sincronizarPermissoesDoUsuario(req);
 
-            nivelUsuario = Number(nivelUsuario || 1);
-
-            // Validação de Nível Mínimo de Acesso
             if (nivelMinimo !== undefined && nivelUsuario < nivelMinimo) {
                 return res.status(403).json({
                     sucesso: false,
@@ -43,14 +61,12 @@ function autorizar(opcoes = {}) {
                 });
             }
 
-            // Validação de Setores permitidos
             if (setores) {
                 const listaSetores = (Array.isArray(setores) ? setores : [setores])
                     .map(s => String(s).toLowerCase());
-                const setorUsuario = String(req.usuario.setor || '').toLowerCase();
+                const setorComparar = String(setorUsuario || '').toLowerCase();
 
-                // Gerente (nível 3) tem acesso global a todos os setores
-                const permitido = listaSetores.includes(setorUsuario) || nivelUsuario >= 3;
+                const permitido = listaSetores.includes(setorComparar) || nivelUsuario >= 3;
 
                 if (!permitido) {
                     return res.status(403).json({
@@ -79,63 +95,32 @@ function autorizar(opcoes = {}) {
 function autorizarCadastroUsuario() {
     return async (req, res, next) => {
         try {
-            const [resultado] = await pool.query('SELECT COUNT(*) AS total FROM usuario');
-            const totalUsuarios = resultado[0].total;
+            const totalUsuarios = await UsuarioRepository.contarTotal();
 
-            // Se for o primeiro usuário do sistema (bootstrap inicial), permite
             if (totalUsuarios === 0) {
                 return next();
             }
 
-            // Caso já existam usuários, exige token de autenticação
-            const authHeader = req.headers.authorization;
-            if (!authHeader) {
-                return res.status(401).json({
-                    sucesso: false,
-                    mensagem: 'Token de autenticação não informado. Cadastro de novos usuários restrito a Gerentes'
-                });
-            }
+            authMiddleware(req, res, async () => {
+                try {
+                    const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
 
-            const jwt = require('jsonwebtoken');
-            const partes = authHeader.split(' ');
-            if (partes.length !== 2 || partes[0] !== 'Bearer') {
-                return res.status(401).json({
-                    sucesso: false,
-                    mensagem: 'Formato do token inválido'
-                });
-            }
+                    if (nivelUsuario < 3) {
+                        return res.status(403).json({
+                            sucesso: false,
+                            mensagem: 'Acesso negado: apenas Gerentes podem cadastrar novos usuários'
+                        });
+                    }
 
-            const { getJwtSecret } = require('../config/auth');
-            const jwtSecret = getJwtSecret();
-            let decoded;
-            try {
-                decoded = jwt.verify(partes[1], jwtSecret);
-            } catch (jwtErr) {
-                return res.status(401).json({
-                    sucesso: false,
-                    mensagem: jwtErr.name === 'TokenExpiredError' ? 'Token expirado' : 'Token inválido'
-                });
-            }
-
-            req.usuario = decoded;
-
-            // Verifica se o usuário autenticado tem nivel_acesso >= 3
-            let nivelUsuario = req.usuario.nivel_acesso;
-            if (nivelUsuario === undefined && req.usuario.id_cargo) {
-                const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
-                if (cargo) {
-                    nivelUsuario = cargo.nivel_acesso;
+                    next();
+                } catch (erroInterno) {
+                    console.error('Erro na autorização de cadastro de usuário:', erroInterno);
+                    return res.status(500).json({
+                        sucesso: false,
+                        mensagem: 'Erro interno ao validar permissão de cadastro'
+                    });
                 }
-            }
-
-            if (Number(nivelUsuario || 1) < 3) {
-                return res.status(403).json({
-                    sucesso: false,
-                    mensagem: 'Acesso negado: apenas Gerentes podem cadastrar novos usuários'
-                });
-            }
-
-            next();
+            });
         } catch (erro) {
             console.error('Erro na autorização de cadastro de usuário:', erro);
             return res.status(500).json({
@@ -166,17 +151,9 @@ function autorizarVisualizacaoUsuario(nivelMinimoOutros = 2) {
                 return next();
             }
 
-            let nivelUsuario = req.usuario.nivel_acesso;
-            if (nivelUsuario === undefined && req.usuario.id_cargo) {
-                const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
-                if (cargo) {
-                    nivelUsuario = cargo.nivel_acesso;
-                    req.usuario.nivel_acesso = cargo.nivel_acesso;
-                    req.usuario.nome_cargo = cargo.nome_cargo;
-                }
-            }
+            const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
 
-            if (Number(nivelUsuario || 1) < nivelMinimoOutros) {
+            if (nivelUsuario < nivelMinimoOutros) {
                 return res.status(403).json({
                     sucesso: false,
                     mensagem: 'Acesso negado: você só pode visualizar o seu próprio perfil'
@@ -214,17 +191,9 @@ function autorizarEdicaoUsuario() {
                 return next();
             }
 
-            let nivelUsuario = req.usuario.nivel_acesso;
-            if (nivelUsuario === undefined && req.usuario.id_cargo) {
-                const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
-                if (cargo) {
-                    nivelUsuario = cargo.nivel_acesso;
-                    req.usuario.nivel_acesso = cargo.nivel_acesso;
-                    req.usuario.nome_cargo = cargo.nome_cargo;
-                }
-            }
+            const { nivelUsuario } = await sincronizarPermissoesDoUsuario(req);
 
-            if (Number(nivelUsuario || 1) < 3) {
+            if (nivelUsuario < 3) {
                 return res.status(403).json({
                     sucesso: false,
                     mensagem: 'Acesso negado: apenas Gerentes podem editar outros usuários'

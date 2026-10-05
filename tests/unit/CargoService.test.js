@@ -3,9 +3,11 @@ jest.mock('../../src/config/database', () => ({
 }));
 
 jest.mock('../../src/repositories/CargoRepository');
+jest.mock('../../src/repositories/UsuarioRepository');
 
 const CargoService = require('../../src/services/CargoService');
 const CargoRepository = require('../../src/repositories/CargoRepository');
+const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
 const pool = require('../../src/config/database');
 
 describe('CargoService', () => {
@@ -381,11 +383,8 @@ describe('CargoService', () => {
                     nivel_acesso: 2
                 });
 
-            pool.query
-                .mockResolvedValue([
-                    [{ total: 0 }],
-                    []
-                ]);
+            UsuarioRepository.contarPorCargo
+                .mockResolvedValue(0);
 
             CargoRepository.remover
                 .mockResolvedValue(true);
@@ -438,11 +437,8 @@ describe('CargoService', () => {
                     nivel_acesso: 3
                 });
 
-            pool.query
-                .mockResolvedValue([
-                    [{ total: 2 }],
-                    []
-                ]);
+            UsuarioRepository.contarPorCargo
+                .mockResolvedValue(2);
 
             await expect(
                 CargoService.removerCargo(1)

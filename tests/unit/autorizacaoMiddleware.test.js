@@ -1,10 +1,10 @@
 jest.mock('../../src/repositories/CargoRepository');
-jest.mock('../../src/config/database');
+jest.mock('../../src/repositories/UsuarioRepository');
 jest.mock('jsonwebtoken');
 jest.mock('../../src/config/auth');
 
 const CargoRepository = require('../../src/repositories/CargoRepository');
-const pool = require('../../src/config/database');
+const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
 const jwt = require('jsonwebtoken');
 const { getJwtSecret } = require('../../src/config/auth');
 
@@ -363,19 +363,15 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve permitir cadastro quando não existem usuários', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 0 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(0);
 
             const middleware =
                 autorizarCadastroUsuario();
 
             await middleware(req, res, next);
 
-            expect(pool.query)
-                .toHaveBeenCalledWith(
-                    'SELECT COUNT(*) AS total FROM usuario'
-                );
+            expect(UsuarioRepository.contarTotal)
+                .toHaveBeenCalled();
 
             expect(next)
                 .toHaveBeenCalled();
@@ -386,9 +382,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve exigir autenticação quando já existem usuários', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             const middleware =
                 autorizarCadastroUsuario();
@@ -401,8 +395,7 @@ describe('autorizacaoMiddleware', () => {
             expect(res.json)
                 .toHaveBeenCalledWith({
                     sucesso: false,
-                    mensagem:
-                        'Token de autenticação não informado. Cadastro de novos usuários restrito a Gerentes'
+                    mensagem: 'Token de autenticação não informado'
                 });
 
             expect(next)
@@ -411,9 +404,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve rejeitar formato de token inválido no cadastro', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             req.headers.authorization =
                 'Token abc123';
@@ -438,9 +429,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve rejeitar token expirado no cadastro', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             req.headers.authorization =
                 'Bearer token-expirado';
@@ -472,9 +461,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve rejeitar token inválido no cadastro', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             req.headers.authorization =
                 'Bearer token-invalido';
@@ -506,9 +493,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve permitir gerente cadastrar usuário', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             req.headers.authorization =
                 'Bearer token-gerente';
@@ -543,9 +528,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve negar cadastro para usuário abaixo do nível 3', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             req.headers.authorization =
                 'Bearer token-estoquista';
@@ -577,9 +560,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve buscar nível do cargo quando token não possuir nivel_acesso', async () => {
 
-            pool.query.mockResolvedValue([
-                [{ total: 5 }]
-            ]);
+            UsuarioRepository.contarTotal.mockResolvedValue(5);
 
             req.headers.authorization =
                 'Bearer token-cargo';
@@ -609,7 +590,7 @@ describe('autorizacaoMiddleware', () => {
 
         test('deve retornar 500 quando ocorrer erro durante cadastro', async () => {
 
-            pool.query.mockRejectedValue(
+            UsuarioRepository.contarTotal.mockRejectedValue(
                 new Error('Erro no banco')
             );
 

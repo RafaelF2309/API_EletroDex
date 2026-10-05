@@ -1,21 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const LoteController = require('../controllers/LoteController');
-const authorize = require('../middlewares/authorize')
+const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
 
-// GET /lotes
+// GET /lote
 router.get('/', LoteController.listar);
 
-// GET /lotes/:id
+// GET /lote/:id
 router.get('/:id', LoteController.buscarPorId);
 
-// POST /lotes
-router.post('/', authorize(2), LoteController.criar);
+// POST /lote
+router.post('/', permitirNivel(2), LoteController.criar);
 
-// PATCH /lotes/:id
-router.patch('/:id', authorize(2), LoteController.atualizar);
+// PATCH /lote/:id
+router.patch('/:id', permitirNivel(2), LoteController.atualizar);
 
-// DELETE /lotes/:id
-router.delete('/:id', authorize(3), LoteController.remover);
+// DELETE /lote/:id
+router.delete('/:id', permitirNivel(3), LoteController.remover);
 
 module.exports = router;

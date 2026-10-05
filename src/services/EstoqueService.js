@@ -8,20 +8,7 @@ class EstoqueService {
         const formatados = estoques.map(e => ({
             ...e,
             qtd_atual: Number(e.qtd_atual),
-            estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0,
-            abaixo_do_minimo: Boolean(e.abaixo_do_minimo)
-        }));
-        return { sucesso: true, dados: formatados, total: formatados.length };
-    }
-
-    async listarEstoquesAbaixoDoMinimo() {
-        const estoques = await EstoqueRepository.listarAbaixoDoMinimo();
-        const formatados = estoques.map(e => ({
-            ...e,
-            qtd_atual: Number(e.qtd_atual),
-            estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0,
-            abaixo_do_minimo: true,
-            quantidade_repor: Number(e.quantidade_repor ?? Math.max(0, (e.estoque_minimo || 0) - e.qtd_atual))
+            estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0
         }));
         return { sucesso: true, dados: formatados, total: formatados.length };
     }
@@ -56,8 +43,7 @@ class EstoqueService {
             dados: {
                 ...estoque,
                 qtd_atual: Number(estoque.qtd_atual),
-                estoque_minimo: estoque.estoque_minimo != null ? Number(estoque.estoque_minimo) : 0,
-                abaixo_do_minimo: Boolean(estoque.abaixo_do_minimo)
+                estoque_minimo: estoque.estoque_minimo != null ? Number(estoque.estoque_minimo) : 0
             }
         };
     }

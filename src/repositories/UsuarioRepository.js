@@ -2,13 +2,17 @@ const pool = require('../config/database');
 
 class UsuarioRepository {
 
-    async buscarCargoPorId(id) {
-        const [cargos] = await pool.query(
-            'SELECT id_cargo, nome_cargo, descricao, nivel_acesso FROM cargo WHERE id_cargo = ?',
-            [id]
-        );
+    async contarTotal() {
+        const [resultado] = await pool.query('SELECT COUNT(*) AS total FROM usuario');
+        return Number(resultado[0].total);
+    }
 
-        return cargos[0];
+    async contarPorCargo(idCargo) {
+        const [resultado] = await pool.query(
+            'SELECT COUNT(*) AS total FROM usuario WHERE id_cargo = ?',
+            [idCargo]
+        );
+        return Number(resultado[0].total);
     }
 
     async listarTodos() {
@@ -22,6 +26,7 @@ class UsuarioRepository {
                 u.setor,
                 u.id_cargo,
                 c.nome_cargo,
+                c.nivel_acesso,
                 u.foto_perfil
             FROM usuario u
             INNER JOIN cargo c
@@ -43,6 +48,7 @@ class UsuarioRepository {
                 u.setor,
                 u.id_cargo,
                 c.nome_cargo,
+                c.nivel_acesso,
                 u.foto_perfil
             FROM usuario u
             INNER JOIN cargo c
@@ -64,9 +70,14 @@ class UsuarioRepository {
     async buscarPorEmail(email) {
         const [usuarios] = await pool.query(
             `
-            SELECT *
-            FROM usuario
-            WHERE email = ?
+            SELECT
+                u.*,
+                c.nome_cargo,
+                c.nivel_acesso
+            FROM usuario u
+            LEFT JOIN cargo c
+                ON u.id_cargo = c.id_cargo
+            WHERE u.email = ?
             `,
             [email]
         );

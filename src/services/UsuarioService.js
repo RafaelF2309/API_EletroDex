@@ -3,7 +3,46 @@ const bcrypt = require('bcrypt');
 const UsuarioRepository = require('../repositories/UsuarioRepository');
 const CargoRepository = require('../repositories/CargoRepository');
 
+const SETORES_VALIDOS = ['gerencia', 'estoque', 'vendas'];
+
 class UsuarioService {
+
+    validarSetor(setor) {
+        const setorFormatado = String(setor).trim();
+        if (!SETORES_VALIDOS.includes(setorFormatado)) {
+            throw {
+                status: 400,
+                mensagem: 'Setor inválido. Use: gerencia, estoque ou vendas'
+            };
+        }
+        return setorFormatado;
+    }
+
+    async resolverNivelUsuario(usuarioLogado) {
+        if (!usuarioLogado) {
+            return 1;
+        }
+
+        if (usuarioLogado.id_usuario) {
+            const usuarioAtual = await UsuarioRepository.buscarPorId(usuarioLogado.id_usuario);
+            if (usuarioAtual?.nivel_acesso !== undefined) {
+                return Number(usuarioAtual.nivel_acesso);
+            }
+        }
+
+        if (usuarioLogado.nivel_acesso !== undefined) {
+            return Number(usuarioLogado.nivel_acesso);
+        }
+
+        if (usuarioLogado.id_cargo) {
+            const cargo = await CargoRepository.buscarPorId(usuarioLogado.id_cargo);
+            if (cargo) {
+                return Number(cargo.nivel_acesso);
+            }
+        }
+
+        return 1;
+    }
 
     async listarUsuarios() {
         const usuarios = await UsuarioRepository.listarTodos();
@@ -28,12 +67,8 @@ class UsuarioService {
 
         if (usuarioLogado) {
             const isProprio = Number(usuarioLogado.id_usuario) === idAlvo;
-            let nivel = usuarioLogado.nivel_acesso;
-            if (nivel === undefined && usuarioLogado.id_cargo) {
-                const cargo = await CargoRepository.buscarPorId(usuarioLogado.id_cargo);
-                if (cargo) nivel = cargo.nivel_acesso;
-            }
-            if (!isProprio && Number(nivel || 1) < 2) {
+            const nivel = await this.resolverNivelUsuario(usuarioLogado);
+            if (!isProprio && nivel < 2) {
                 throw {
                     status: 403,
                     mensagem: 'Acesso negado: você só pode visualizar o seu próprio perfil'
@@ -95,6 +130,8 @@ class UsuarioService {
             };
         }
 
+        const setorFormatado = this.validarSetor(setor);
+
         // Normalizar e-mail
         const emailFormatado = String(email)
             .trim()
@@ -124,7 +161,7 @@ class UsuarioService {
             nome: String(nome).trim(),
             email: emailFormatado,
             senha: senhaHash,
-            setor: String(setor).trim(),
+            setor: setorFormatado,
             id_cargo: Number(id_cargo),
             foto_perfil: foto_perfil || null
         });
@@ -162,14 +199,7 @@ class UsuarioService {
         }
 
         // Validação de Permissões
-        let nivelLogado = usuarioLogado ? usuarioLogado.nivel_acesso : undefined;
-        if (usuarioLogado && nivelLogado === undefined && usuarioLogado.id_cargo) {
-            const cargo = await CargoRepository.buscarPorId(usuarioLogado.id_cargo);
-            if (cargo) {
-                nivelLogado = cargo.nivel_acesso;
-            }
-        }
-        nivelLogado = Number(nivelLogado || 1);
+        const nivelLogado = await this.resolverNivelUsuario(usuarioLogado);
         const isGerente = nivelLogado >= 3;
         const isProprioUsuario = usuarioLogado && Number(usuarioLogado.id_usuario) === idAlvo;
 
@@ -293,23 +323,7 @@ class UsuarioService {
 
         // Setor
         if (setor !== undefined && setor !== null) {
-
-            const setorFormatado = String(setor).trim();
-
-            const setoresValidos = [
-                'gerencia',
-                'estoque',
-                'vendas'
-            ];
-
-            if (!setoresValidos.includes(setorFormatado)) {
-                throw {
-                    status: 400,
-                    mensagem: 'Setor inválido. Use: gerencia, estoque ou vendas'
-                };
-            }
-
-            dadosAtualizados.setor = setorFormatado;
+            dadosAtualizados.setor = this.validarSetor(setor);
         }
 
         // Cargo

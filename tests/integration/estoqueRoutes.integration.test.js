@@ -31,15 +31,6 @@ describe('Integração - Rotas de Estoque', () => {
             }
         );
 
-        EstoqueController.listarAbaixoDoMinimo.mockImplementation(
-            (req, res) => {
-                res.status(200).json({
-                    sucesso: true,
-                    mensagem: 'Estoques abaixo do mínimo listados'
-                });
-            }
-        );
-
         EstoqueController.buscarPorId.mockImplementation(
             (req, res) => {
                 res.status(200).json({
@@ -136,39 +127,6 @@ describe('Integração - Rotas de Estoque', () => {
             });
 
         expect(EstoqueController.listar)
-            .toHaveBeenCalled();
-    });
-
-    // ==========================================
-    // GET /estoque/abaixo-do-minimo
-    // ==========================================
-
-    test('deve permitir listar estoques abaixo do mínimo com token válido', async () => {
-
-        jwt.verify.mockReturnValue({
-            id_usuario: 10,
-            nivel_acesso: 1,
-            setor: 'vendas'
-        });
-
-        const resposta = await request(app)
-            .get('/api/estoque/abaixo-do-minimo')
-            .set(
-                'Authorization',
-                'Bearer token-valido'
-            );
-
-        expect(resposta.status)
-            .toBe(200);
-
-        expect(resposta.body)
-            .toEqual({
-                sucesso: true,
-                mensagem:
-                    'Estoques abaixo do mínimo listados'
-            });
-
-        expect(EstoqueController.listarAbaixoDoMinimo)
             .toHaveBeenCalled();
     });
 

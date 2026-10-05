@@ -23,25 +23,8 @@ async function setup() {
     console.log('Conexão estabelecida com sucesso!');
   } catch (error) {
     console.error('Erro ao conectar ao MySQL:', error.message);
-    console.log('Tentando conectar com senha vazia...');
-    try {
-      config.password = '';
-      connection = await mysql.createConnection(config);
-      console.log('Conexão estabelecida com sucesso usando senha vazia!');
-      
-      // Update .env file to use empty password
-      const envPath = path.join(__dirname, '../.env');
-      if (fs.existsSync(envPath)) {
-        let envContent = fs.readFileSync(envPath, 'utf8');
-        envContent = envContent.replace(/DB_PASSWORD=.*/, 'DB_PASSWORD=');
-        fs.writeFileSync(envPath, envContent, 'utf8');
-        console.log('Atualizado arquivo .env para usar senha vazia.');
-      }
-    } catch (innerError) {
-      console.error('Erro ao conectar com senha vazia também:', innerError.message);
-      console.log('Certifique-se de que o MySQL está rodando e as credenciais no arquivo .env estão corretas.');
-      process.exit(1);
-    }
+    console.log('Certifique-se de que o MySQL está rodando e as credenciais no arquivo .env estão corretas.');
+    process.exit(1);
   }
 
   try {
