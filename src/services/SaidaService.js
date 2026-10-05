@@ -23,13 +23,21 @@ class SaidaService {
         return { sucesso: true, dados: saida };
     }
 
-    async criarSaida(dados) {
-        const { id_usuario, id_fornecedor, id_produto, data, lote, quantidade, rastreamento } = dados;
+    async criarSaida(dados, id_usuario_autenticado) {
+        const id_usuario = id_usuario_autenticado || dados.id_usuario;
+        const { id_fornecedor, id_produto, data, lote, quantidade, rastreamento } = dados;
 
-        if (!id_usuario || !id_fornecedor || !id_produto || !data || !lote || quantidade == null) {
+        if (!id_usuario) {
             throw {
                 status: 400,
-                mensagem: 'Campos obrigatórios faltando: id_usuario, id_fornecedor, id_produto, data, lote, quantidade'
+                mensagem: 'id_usuario é obrigatório'
+            };
+        }
+
+        if (!id_fornecedor || !id_produto || !data || !lote || quantidade == null) {
+            throw {
+                status: 400,
+                mensagem: 'Campos obrigatórios faltando: id_fornecedor, id_produto, data, lote, quantidade'
             };
         }
 
@@ -74,10 +82,10 @@ class SaidaService {
         const dadosAtualizados = {};
 
         if (id_usuario !== undefined) {
-            if (!await UsuarioRepository.buscarPorId(id_usuario)) {
-                throw { status: 404, mensagem: 'Usuário informado não existe' };
-            }
-            dadosAtualizados.id_usuario = id_usuario;
+            throw {
+                status: 400,
+                mensagem: 'Não é permitido alterar o usuário de uma movimentação'
+            };
         }
         if (id_fornecedor !== undefined) {
             if (!await FornecedorRepository.buscarPorId(id_fornecedor)) {

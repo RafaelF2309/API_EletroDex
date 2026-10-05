@@ -21,7 +21,7 @@ class SaidaController {
 
     async criar(req, res) {
         try {
-            const resultado = await SaidaService.criarSaida(req.body);
+            const resultado = await SaidaService.criarSaida(req.body, req.usuario?.id_usuario);
             res.status(201).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });

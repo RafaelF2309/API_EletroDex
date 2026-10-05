@@ -21,7 +21,7 @@ class EntradaController {
 
     async criar(req, res) {
         try {
-            const resultado = await EntradaService.criarEntrada(req.body);
+            const resultado = await EntradaService.criarEntrada(req.body, req.usuario?.id_usuario);
             res.status(201).json(resultado);
         } catch (erro) {
             res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });

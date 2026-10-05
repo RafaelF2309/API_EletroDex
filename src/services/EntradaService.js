@@ -24,9 +24,10 @@ class EntradaService {
     return { sucesso: true, dados: entrada };
   }
 
-  async criarEntrada(dados) {
+  async criarEntrada(dados, id_usuario_autenticado) {
+    const id_usuario = id_usuario_autenticado || dados.id_usuario;
+
     const {
-      id_usuario,
       id_fornecedor,
       id_produto,
       data,
@@ -35,8 +36,14 @@ class EntradaService {
       rastreamento,
     } = dados;
 
+    if (!id_usuario) {
+      throw {
+        status: 400,
+        mensagem: "id_usuario é obrigatório",
+      };
+    }
+
     if (
-      !id_usuario ||
       !id_fornecedor ||
       !id_produto ||
       !data ||
@@ -46,7 +53,7 @@ class EntradaService {
       throw {
         status: 400,
         mensagem:
-          "Campos obrigatórios faltando: id_usuario, id_fornecedor, id_produto, data, lote, quantidade",
+          "Campos obrigatórios faltando: id_fornecedor, id_produto, data, lote, quantidade",
       };
     }
 
@@ -139,20 +146,14 @@ class EntradaService {
     const dadosAtualizados = {};
 
     // =========================
-    // VALIDAR USUÁRIO
+    // VALIDAR USUÁRIO (NÃO PERMITIR ALTERAÇÃO)
     // =========================
 
     if (id_usuario !== undefined) {
-      const usuario = await UsuarioRepository.buscarPorId(id_usuario);
-
-      if (!usuario) {
-        throw {
-          status: 404,
-          mensagem: "Usuário informado não existe",
-        };
-      }
-
-      dadosAtualizados.id_usuario = id_usuario;
+      throw {
+        status: 400,
+        mensagem: "Não é permitido alterar o usuário de uma movimentação",
+      };
     }
 
     // =========================
