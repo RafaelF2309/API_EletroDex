@@ -8,7 +8,9 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 const {
     permitirNivel,
-    autorizarCadastroUsuario
+    autorizarCadastroUsuario,
+    autorizarVisualizacaoUsuario,
+    autorizarEdicaoUsuario
 } = require('../middlewares/autorizacaoMiddleware');
 
 const validateImageContent = require('../middlewares/imageValidation');
@@ -38,16 +40,20 @@ router.get(
 );
 
 // GET /api/usuarios/:id
+// O próprio usuário pode ver seu perfil; outros perfis exigem nível >= 2 (Estoquista/Gerente)
 router.get(
     '/:id',
     authMiddleware,
+    autorizarVisualizacaoUsuario(),
     UsuarioController.buscarPorId
 );
 
 // PATCH /api/usuarios/:id
+// O próprio usuário pode editar dados básicos; outros perfis exigem Gerente (nível 3)
 router.patch(
     '/:id',
     authMiddleware,
+    autorizarEdicaoUsuario(),
     upload.single('imagem'),
     validateImageContent,
     UsuarioController.atualizar

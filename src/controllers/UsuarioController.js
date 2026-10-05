@@ -12,7 +12,7 @@ class UsuarioController {
 
     async buscarPorId(req, res, next) {
         try {
-            const resultado = await UsuarioService.buscarUsuarioPorId(req.params.id);
+            const resultado = await UsuarioService.buscarUsuarioPorId(req.params.id, req.usuario);
             return res.status(200).json(resultado);
         } catch (erro) {
             next(erro);
@@ -41,7 +41,11 @@ class UsuarioController {
                 dadosAtualizacao.foto_perfil = req.file.filename;
             }
 
-            const resultado = await UsuarioService.atualizarUsuario(req.params.id, dadosAtualizacao);
+            const resultado = await UsuarioService.atualizarUsuario(
+                req.params.id,
+                dadosAtualizacao,
+                req.usuario
+            );
             return res.status(200).json(resultado);
         } catch (erro) {
             next(erro);

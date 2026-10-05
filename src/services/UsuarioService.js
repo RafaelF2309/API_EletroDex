@@ -15,7 +15,7 @@ class UsuarioService {
         };
     }
 
-    async buscarUsuarioPorId(id) {
+    async buscarUsuarioPorId(id, usuarioLogado) {
 
         if (!id || isNaN(id)) {
             throw {
@@ -24,7 +24,24 @@ class UsuarioService {
             };
         }
 
-        const usuario = await UsuarioRepository.buscarPorId(id);
+        const idAlvo = Number(id);
+
+        if (usuarioLogado) {
+            const isProprio = Number(usuarioLogado.id_usuario) === idAlvo;
+            let nivel = usuarioLogado.nivel_acesso;
+            if (nivel === undefined && usuarioLogado.id_cargo) {
+                const cargo = await CargoRepository.buscarPorId(usuarioLogado.id_cargo);
+                if (cargo) nivel = cargo.nivel_acesso;
+            }
+            if (!isProprio && Number(nivel || 1) < 2) {
+                throw {
+                    status: 403,
+                    mensagem: 'Acesso negado: você só pode visualizar o seu próprio perfil'
+                };
+            }
+        }
+
+        const usuario = await UsuarioRepository.buscarPorId(idAlvo);
 
         if (!usuario) {
             throw {
@@ -123,7 +140,7 @@ class UsuarioService {
         };
     }
 
-    async atualizarUsuario(id, dados) {
+    async atualizarUsuario(id, dados, usuarioLogado) {
 
         if (!id || isNaN(id)) {
             throw {
@@ -132,8 +149,10 @@ class UsuarioService {
             };
         }
 
+        const idAlvo = Number(id);
+
         const usuarioExiste =
-            await UsuarioRepository.buscarPorId(id);
+            await UsuarioRepository.buscarPorId(idAlvo);
 
         if (!usuarioExiste) {
             throw {
@@ -142,10 +161,48 @@ class UsuarioService {
             };
         }
 
+        // Validação de Permissões
+        let nivelLogado = usuarioLogado ? usuarioLogado.nivel_acesso : undefined;
+        if (usuarioLogado && nivelLogado === undefined && usuarioLogado.id_cargo) {
+            const cargo = await CargoRepository.buscarPorId(usuarioLogado.id_cargo);
+            if (cargo) {
+                nivelLogado = cargo.nivel_acesso;
+            }
+        }
+        nivelLogado = Number(nivelLogado || 1);
+        const isGerente = nivelLogado >= 3;
+        const isProprioUsuario = usuarioLogado && Number(usuarioLogado.id_usuario) === idAlvo;
+
+        // Regra 1: Apenas Gerente pode editar perfil de outros usuários
+        if (usuarioLogado && !isProprioUsuario && !isGerente) {
+            throw {
+                status: 403,
+                mensagem: 'Acesso negado: apenas Gerentes podem editar outros usuários'
+            };
+        }
+
+        // Regra 2: Apenas Gerente pode alterar id_cargo ou setor
+        if (usuarioLogado && !isGerente) {
+            if (dados.id_cargo !== undefined || dados.setor !== undefined) {
+                throw {
+                    status: 403,
+                    mensagem: 'Acesso negado: apenas Gerentes podem alterar cargo ou setor'
+                };
+            }
+            if (dados.email !== undefined && String(dados.email).trim().toLowerCase() !== usuarioExiste.email) {
+                throw {
+                    status: 403,
+                    mensagem: 'Acesso negado: apenas Gerentes podem alterar o e-mail cadastrado'
+                };
+            }
+        }
+
         const {
             nome,
             email,
             senha,
+            senha_atual,
+            senhaAtual,
             setor,
             id_cargo,
             foto_perfil
@@ -206,6 +263,27 @@ class UsuarioService {
             senha !== null &&
             String(senha).trim() !== ''
         ) {
+            // Se for o próprio usuário alterando a senha, exige a senha atual
+            if (isProprioUsuario) {
+                const senhaAtualInformada = senha_atual || senhaAtual;
+                if (!senhaAtualInformada) {
+                    throw {
+                        status: 400,
+                        mensagem: 'Para alterar a senha, é necessário informar a senha atual (senha_atual)'
+                    };
+                }
+
+                const senhaHashBanco = await UsuarioRepository.buscarSenhaPorId(idAlvo);
+                const senhaCorreta = await bcrypt.compare(String(senhaAtualInformada), senhaHashBanco || '');
+
+                if (!senhaCorreta) {
+                    throw {
+                        status: 401,
+                        mensagem: 'Senha atual incorreta'
+                    };
+                }
+            }
+
             dadosAtualizados.senha =
                 await bcrypt.hash(
                     String(senha),
@@ -276,12 +354,12 @@ class UsuarioService {
         }
 
         await UsuarioRepository.atualizar(
-            id,
+            idAlvo,
             dadosAtualizados
         );
 
         const usuarioAtualizado =
-            await UsuarioRepository.buscarPorId(id);
+            await UsuarioRepository.buscarPorId(idAlvo);
 
         return {
             sucesso: true,

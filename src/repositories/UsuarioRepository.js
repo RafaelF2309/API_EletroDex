@@ -53,6 +53,14 @@ class UsuarioRepository {
         return usuarios[0];
     }
 
+    async buscarSenhaPorId(id) {
+        const [usuarios] = await pool.query(
+            'SELECT senha FROM usuario WHERE id_usuario = ?',
+            [id]
+        );
+        return usuarios[0]?.senha;
+    }
+
     async buscarPorEmail(email) {
         const [usuarios] = await pool.query(
             `

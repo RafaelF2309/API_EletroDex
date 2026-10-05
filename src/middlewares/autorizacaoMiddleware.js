@@ -146,6 +146,102 @@ function autorizarCadastroUsuario() {
     };
 }
 
+/**
+ * Middleware para autorizar visualização de perfil de usuário (GET /usuarios/:id):
+ * - O próprio usuário pode visualizar seu próprio perfil.
+ * - Outros usuários só podem ser visualizados por quem tem nivel_acesso >= nivelMinimoOutros (padrão: 2 - Estoquista ou Gerente).
+ */
+function autorizarVisualizacaoUsuario(nivelMinimoOutros = 2) {
+    return async (req, res, next) => {
+        try {
+            if (!req.usuario) {
+                return res.status(401).json({
+                    sucesso: false,
+                    mensagem: 'Acesso negado: usuário não autenticado'
+                });
+            }
+
+            const idParam = Number(req.params.id);
+            if (req.usuario.id_usuario === idParam) {
+                return next();
+            }
+
+            let nivelUsuario = req.usuario.nivel_acesso;
+            if (nivelUsuario === undefined && req.usuario.id_cargo) {
+                const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
+                if (cargo) {
+                    nivelUsuario = cargo.nivel_acesso;
+                    req.usuario.nivel_acesso = cargo.nivel_acesso;
+                    req.usuario.nome_cargo = cargo.nome_cargo;
+                }
+            }
+
+            if (Number(nivelUsuario || 1) < nivelMinimoOutros) {
+                return res.status(403).json({
+                    sucesso: false,
+                    mensagem: 'Acesso negado: você só pode visualizar o seu próprio perfil'
+                });
+            }
+
+            next();
+        } catch (erro) {
+            console.error('Erro na autorização de visualização de usuário:', erro);
+            return res.status(500).json({
+                sucesso: false,
+                mensagem: 'Erro interno ao validar permissões de acesso'
+            });
+        }
+    };
+}
+
+/**
+ * Middleware para autorizar edição de perfil de usuário (PATCH /usuarios/:id):
+ * - O próprio usuário pode editar seu perfil (com campos restritos no serviço).
+ * - A edição de perfis de outros usuários é restrita a Gerentes (nivel_acesso >= 3).
+ */
+function autorizarEdicaoUsuario() {
+    return async (req, res, next) => {
+        try {
+            if (!req.usuario) {
+                return res.status(401).json({
+                    sucesso: false,
+                    mensagem: 'Acesso negado: usuário não autenticado'
+                });
+            }
+
+            const idParam = Number(req.params.id);
+            if (req.usuario.id_usuario === idParam) {
+                return next();
+            }
+
+            let nivelUsuario = req.usuario.nivel_acesso;
+            if (nivelUsuario === undefined && req.usuario.id_cargo) {
+                const cargo = await CargoRepository.buscarPorId(req.usuario.id_cargo);
+                if (cargo) {
+                    nivelUsuario = cargo.nivel_acesso;
+                    req.usuario.nivel_acesso = cargo.nivel_acesso;
+                    req.usuario.nome_cargo = cargo.nome_cargo;
+                }
+            }
+
+            if (Number(nivelUsuario || 1) < 3) {
+                return res.status(403).json({
+                    sucesso: false,
+                    mensagem: 'Acesso negado: apenas Gerentes podem editar outros usuários'
+                });
+            }
+
+            next();
+        } catch (erro) {
+            console.error('Erro na autorização de edição de usuário:', erro);
+            return res.status(500).json({
+                sucesso: false,
+                mensagem: 'Erro interno ao validar permissões de acesso'
+            });
+        }
+    };
+}
+
 const permitirNivel = (nivelMinimo) => autorizar({ nivelMinimo });
 const permitirSetores = (...setores) => autorizar({ setores });
 
@@ -153,5 +249,7 @@ module.exports = {
     autorizar,
     permitirNivel,
     permitirSetores,
-    autorizarCadastroUsuario
+    autorizarCadastroUsuario,
+    autorizarVisualizacaoUsuario,
+    autorizarEdicaoUsuario
 };
