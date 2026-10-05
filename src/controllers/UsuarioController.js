@@ -23,7 +23,7 @@ class UsuarioController {
         try {
             const dadosUsuario = { 
                 ...req.body, 
-                imagem: req.file ? req.file.filename : null 
+                foto_perfil: req.file ? req.file.filename : (req.body.foto_perfil || null) 
             };
             const resultado = await UsuarioService.criarUsuario(dadosUsuario);
             return res.status(201).json(resultado);
@@ -36,9 +36,9 @@ class UsuarioController {
         try {
             const dadosAtualizacao = { ...req.body };
 
-            // Mantém a imagem antiga caso um novo arquivo não seja enviado
+            // Mantém a foto antiga caso um novo arquivo não seja enviado
             if (req.file) {
-                dadosAtualizacao.imagem = req.file.filename;
+                dadosAtualizacao.foto_perfil = req.file.filename;
             }
 
             const resultado = await UsuarioService.atualizarUsuario(req.params.id, dadosAtualizacao);
