@@ -3,7 +3,25 @@ const ProdutoRepository = require('../repositories/ProdutoRepository');
 class ProdutoService {
     async listarProdutos() {
         const produtos = await ProdutoRepository.listarTodos();
-        return { sucesso: true, dados: produtos, total: produtos.length };
+        const formatados = produtos.map(p => ({
+            ...p,
+            qtd_atual: Number(p.qtd_atual ?? 0),
+            estoque_minimo: Number(p.estoque_minimo ?? 0),
+            abaixo_do_minimo: Boolean(p.abaixo_do_minimo)
+        }));
+        return { sucesso: true, dados: formatados, total: formatados.length };
+    }
+
+    async listarProdutosAbaixoDoMinimo() {
+        const produtos = await ProdutoRepository.listarAbaixoDoMinimo();
+        const formatados = produtos.map(p => ({
+            ...p,
+            qtd_atual: Number(p.qtd_atual ?? 0),
+            estoque_minimo: Number(p.estoque_minimo ?? 0),
+            abaixo_do_minimo: true,
+            diferenca_para_minimo: Number(p.diferenca_para_minimo ?? 0)
+        }));
+        return { sucesso: true, dados: formatados, total: formatados.length };
     }
 
     async buscarProdutoPorId(id) {
@@ -17,7 +35,15 @@ class ProdutoService {
             throw { status: 404, mensagem: 'Produto não encontrado' };
         }
 
-        return { sucesso: true, dados: produto };
+        return {
+            sucesso: true,
+            dados: {
+                ...produto,
+                qtd_atual: Number(produto.qtd_atual ?? 0),
+                estoque_minimo: Number(produto.estoque_minimo ?? 0),
+                abaixo_do_minimo: Boolean(produto.abaixo_do_minimo)
+            }
+        };
     }
 
     async criarProduto(dados) {
@@ -56,9 +82,9 @@ class ProdutoService {
         };
 
         const novoId = await ProdutoRepository.criar(novoProduto);
-        const produtoCriado = await ProdutoRepository.buscarPorId(novoId);
+        const produtoCriado = await this.buscarProdutoPorId(novoId);
 
-        return { sucesso: true, mensagem: 'Produto cadastrado com sucesso', dados: produtoCriado };
+        return { sucesso: true, mensagem: 'Produto cadastrado com sucesso', dados: produtoCriado.dados };
     }
 
     async atualizarProduto(id, dados) {
@@ -128,9 +154,9 @@ class ProdutoService {
         }
 
         await ProdutoRepository.atualizar(id, dadosAtualizados);
-        const produtoAtualizado = await ProdutoRepository.buscarPorId(id);
+        const produtoAtualizado = await this.buscarProdutoPorId(id);
 
-        return { sucesso: true, mensagem: 'Produto atualizado com sucesso', dados: produtoAtualizado };
+        return { sucesso: true, mensagem: 'Produto atualizado com sucesso', dados: produtoAtualizado.dados };
     }
 
     async removerProduto(id) {
@@ -141,6 +167,14 @@ class ProdutoService {
         const produtoExiste = await ProdutoRepository.buscarPorId(id);
         if (!produtoExiste) {
             throw { status: 404, mensagem: 'Produto não encontrado' };
+        }
+
+        const dependencias = await ProdutoRepository.contarDependencias(id);
+        if (dependencias > 0) {
+            throw {
+                status: 409,
+                mensagem: 'Produto possui lotes, estoque ou movimentações vinculadas e não pode ser removido'
+            };
         }
 
         await ProdutoRepository.remover(id);

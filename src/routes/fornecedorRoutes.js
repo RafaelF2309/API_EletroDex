@@ -1,21 +1,44 @@
 const express = require('express');
 const router = express.Router();
+
 const FornecedorController = require('../controllers/FornecedorController');
-const upload = require('../config/multer');
 
-// GET /fornecedores
-router.get('/', FornecedorController.listar);
+const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
 
-// GET /fornecedores/:id
-router.get('/:id', FornecedorController.buscarPorId);
+// GET /api/fornecedores
+router.get(
+    '/',
+    FornecedorController.listar
+);
 
-// POST /fornecedores (campo: logo)
-router.post('/', upload.single('logo'), FornecedorController.criar);
+// GET /api/fornecedores/:id
+router.get(
+    '/:id',
+    FornecedorController.buscarPorId
+);
 
-// PATCH /fornecedores/:id (campo: logo)
-router.patch('/:id', upload.single('logo'), FornecedorController.atualizar);
+// POST /api/fornecedores
+// Estoquista ou Gerente
+router.post(
+    '/',
+    permitirNivel(2),
+    FornecedorController.criar
+);
 
-// DELETE /fornecedores/:id
-router.delete('/:id', FornecedorController.remover);
+// PATCH /api/fornecedores/:id
+// Estoquista ou Gerente
+router.patch(
+    '/:id',
+    permitirNivel(2),
+    FornecedorController.atualizar
+);
+
+// DELETE /api/fornecedores/:id
+// Apenas Gerente
+router.delete(
+    '/:id',
+    permitirNivel(3),
+    FornecedorController.remover
+);
 
 module.exports = router;

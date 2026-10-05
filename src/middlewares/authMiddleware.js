@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../config/auth')
 
 function authMiddleware(req, res, next) {
     try {
@@ -21,9 +22,7 @@ function authMiddleware(req, res, next) {
         }
 
         const token = partes[1];
-        const jwtSecret = process.env.JWT_SECRET || 'eletrodex_secret_key_2026_super_segura';
-
-        const decoded = jwt.verify(token, jwtSecret);
+        const decoded = jwt.verify(token, getJwtSecret());
 
         // Guarda os dados do usuário na requisição
         req.usuario = decoded;

@@ -1,31 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../config/multer')
+
+const upload = require('../config/multer');
 const ProdutoController = require('../controllers/ProdutoController');
 
-// GET /produtos
+const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
+const validateImageContent = require('../middlewares/imageValidation');
+
+// GET /api/produtos
 router.get('/', ProdutoController.listar);
 
-// GET /produtos/:id
-router.get('/:id', ProdutoController.buscarPorId);
+// GET /api/produtos/abaixo-do-minimo
+router.get(
+    '/abaixo-do-minimo',
+    ProdutoController.listarAbaixoDoMinimo
+);
 
-// POST /produtos
-router.post('/', 
+// GET /api/produtos/:id
+router.get(
+    '/:id',
+    ProdutoController.buscarPorId
+);
+
+// POST /api/produtos
+// Estoquista ou Gerente
+router.post(
+    '/',
+    permitirNivel(2),
     upload.single('imagem'),
-    ProdutoController.criar);
+    validateImageContent,
+    ProdutoController.criar
+);
 
-// PATCH /produtos/:id
-router.patch('/:id', 
-    upload.single('imagem'), 
-    ProdutoController.atualizar);
-    
-// POST /produtos (campo: imagem)
-router.post('/', upload.single('imagem'), ProdutoController.criar);
+// PATCH /api/produtos/:id
+// Estoquista ou Gerente
+router.patch(
+    '/:id',
+    permitirNivel(2),
+    upload.single('imagem'),
+    validateImageContent,
+    ProdutoController.atualizar
+);
 
-// PATCH /produtos/:id (campo: imagem)
-router.patch('/:id', upload.single('imagem'), ProdutoController.atualizar);
-
-// DELETE /produtos/:id
-router.delete('/:id', ProdutoController.remover);
+// DELETE /api/produtos/:id
+// Apenas Gerente
+router.delete(
+    '/:id',
+    permitirNivel(3),
+    ProdutoController.remover
+);
 
 module.exports = router;
