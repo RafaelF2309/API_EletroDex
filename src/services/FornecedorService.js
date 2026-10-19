@@ -80,7 +80,7 @@ class FornecedorService {
             }
             // Verifica se outro fornecedor já possui este CNPJ
             const fornecedorComCnpj = await FornecedorRepository.buscarPorCnpj(cnpjDigits);
-            if (fornecedorComCnpj && Number(fornecedorComCnpj.id) !== Number(id)) {
+            if (fornecedorComCnpj && Number(fornecedorComCnpj.id_fornecedor) !== Number(id)) {
                 throw { status: 409, mensagem: 'Outro fornecedor já possui este CNPJ.' };
             }
             dadosAtualizados.cnpj = cnpjDigits;
