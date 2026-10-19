@@ -27,10 +27,11 @@ app.use((req, res, next) => {
 // Middleware genérico de tratamento de erros
 // Recebe erros de qualquer controller via next(erro)
 app.use((err, req, res, next) => {
-    const status = err.status || 500;
-    const mensagem = err.mensagem || (status >= 500
-        ? 'Erro interno do servidor'
-        : err.message || 'Erro interno do servidor');
+    // Trata erros do Multer (ex.: limite de tamanho ou fileFilter) como 400
+    const isMulterError = err instanceof multer.MulterError || (err.message && !err.status);
+    const status = isMulterError ? 400 : (err.status || 500);
+    const mensagem = isMulterError ? err.message : (err.mensagem || (status >= 500 ? 'Erro interno do servidor' : err.message || 'Erro interno do servidor'));
+
 
     // Loga apenas erros de servidor (5xx) para não poluir o console com 4xx esperados
     if (status >= 500) {
