@@ -100,26 +100,48 @@ class LoteService {
         const { id_produto, numero_lote, dt_fabricacao, dt_validade, quantidade_inicial, id_fornecedor } = dados;
         const dadosAtualizados = {};
 
+        // impedir alterações de campos imutáveis
+        if (id_produto !== undefined) {
+            throw { status: 400, mensagem: 'Alteração de id_produto não é permitida' };
+        }
+        if (quantidade_inicial !== undefined) {
+            throw { status: 400, mensagem: 'Alteração de quantidade_inicial não é permitida' };
+        }
+
+        // validar número de lote (unicidade)
+        if (numero_lote !== undefined) {
+            const loteMesmoNumero = await LoteRepository.buscarPorNumeroLote(numero_lote);
+            if (loteMesmoNumero && loteMesmoNumero.id !== Number(id)) {
+                throw { status: 409, mensagem: 'Já existe um lote cadastrado com este número' };
+            }
+            dadosAtualizados.numero_lote = numero_lote;
+        }
+
+        // validar datas quando fornecidas
+        if (dt_fabricacao !== undefined) dadosAtualizados.dt_fabricacao = dt_fabricacao;
+        if (dt_validade !== undefined) dadosAtualizados.dt_validade = dt_validade;
         if (dt_fabricacao !== undefined || dt_validade !== undefined) {
             const dataFabFinal = new Date(dt_fabricacao !== undefined ? dt_fabricacao : loteExiste.dt_fabricacao);
             const dataValFinal = new Date(dt_validade !== undefined ? dt_validade : loteExiste.dt_validade);
-
             if (isNaN(dataFabFinal.getTime()) || isNaN(dataValFinal.getTime())) {
                 throw { status: 400, mensagem: 'Formato de data inválido' };
             }
-
             if (dataValFinal <= dataFabFinal) {
                 throw { status: 400, mensagem: 'A data de validade deve ser posterior à data de fabricação' };
             }
         }
 
-        if (id_produto !== undefined) dadosAtualizados.id_produto = id_produto;
-        if (numero_lote !== undefined) dadosAtualizados.numero_lote = numero_lote;
-        if (dt_fabricacao !== undefined) dadosAtualizados.dt_fabricacao = dt_fabricacao;
-        if (dt_validade !== undefined) dadosAtualizados.dt_validade = dt_validade;
-        if (quantidade_inicial !== undefined) dadosAtualizados.quantidade_inicial = quantidade_inicial;
-        if (id_fornecedor !== undefined) dadosAtualizados.id_fornecedor = id_fornecedor;
-        if (Object.keys(dadosAtualizados).length === 0) throw { status: 400, mensagem: 'Nenhum campo para atualizar' };
+        // validar fornecedor se alterado
+        if (id_fornecedor !== undefined) {
+            if (!await FornecedorRepository.buscarPorId(id_fornecedor)) {
+                throw { status: 404, mensagem: 'Fornecedor informado não existe' };
+            }
+            dadosAtualizados.id_fornecedor = id_fornecedor;
+        }
+
+        if (Object.keys(dadosAtualizados).length === 0) {
+            throw { status: 400, mensagem: 'Nenhum campo válido para atualizar' };
+        }
 
         await LoteRepository.atualizar(id, dadosAtualizados);
         return { sucesso: true, mensagem: 'Lote atualizado com sucesso', dados: await LoteRepository.buscarPorId(id) };
