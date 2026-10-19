@@ -127,8 +127,10 @@ class EstoqueService {
             throw { status: 400, mensagem: 'qtd_atual só pode ser alterada pelo endpoint de ajuste auditável' };
         }
 
-        if (id_produto !== undefined) dadosAtualizados.id_produto = id_produto;
-        if (id_lote !== undefined) dadosAtualizados.id_lote = id_lote;
+        // Impedir alteração de id_produto e id_lote via PATCH
+        if (id_produto !== undefined || id_lote !== undefined) {
+            throw { status: 400, mensagem: 'id_produto e id_lote não podem ser alterados via atualização de estoque' };
+        }
         if (localizacao_corredor !== undefined) dadosAtualizados.localizacao_corredor = localizacao_corredor;
         if (localizacao_prateleira !== undefined) dadosAtualizados.localizacao_prateleira = localizacao_prateleira;
 
