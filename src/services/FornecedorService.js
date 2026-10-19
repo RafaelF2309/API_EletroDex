@@ -27,12 +27,21 @@ class FornecedorService {
             throw { status: 400, mensagem: 'Campos obrigatórios faltando: nome_fornecedor, email, telefone, cnpj' };
         }
 
-        const fornecedorExistente = await FornecedorRepository.buscarPorCnpj(cnpj);
+        // Normaliza CNPJ (apenas dígitos) e valida formato
+        const cnpjDigits = String(cnpj).replace(/\D/g, '');
+        if (cnpjDigits.length !== 14) {
+            throw { status: 400, mensagem: 'CNPJ inválido. Deve conter 14 dígitos numéricos.' };
+        }
+        // Validação simples de e‑mail
+        const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        if (!emailRegex.test(email)) {
+            throw { status: 400, mensagem: 'E‑mail inválido.' };
+        }
+        const fornecedorExistente = await FornecedorRepository.buscarPorCnpj(cnpjDigits);
         if (fornecedorExistente) {
             throw { status: 409, mensagem: 'Já existe um fornecedor cadastrado com este CNPJ' };
         }
-
-        const novoId = await FornecedorRepository.criar({ nome_fornecedor, email, telefone, cnpj });
+        const novoId = await FornecedorRepository.criar({ nome_fornecedor, email, telefone, cnpj: cnpjDigits });
         const fornecedorCriado = await FornecedorRepository.buscarPorId(novoId);
 
         return { sucesso: true, mensagem: 'Fornecedor cadastrado com sucesso', dados: fornecedorCriado };
@@ -52,9 +61,30 @@ class FornecedorService {
         const dadosAtualizados = {};
 
         if (nome_fornecedor !== undefined) dadosAtualizados.nome_fornecedor = nome_fornecedor;
-        if (email !== undefined) dadosAtualizados.email = email;
+
+        if (email !== undefined) {
+            const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+            if (!emailRegex.test(email)) {
+                throw { status: 400, mensagem: 'E-mail inválido.' };
+            }
+            dadosAtualizados.email = email;
+        }
+
         if (telefone !== undefined) dadosAtualizados.telefone = telefone;
-        if (cnpj !== undefined) dadosAtualizados.cnpj = cnpj;
+
+        if (cnpj !== undefined) {
+            // Normaliza CNPJ (apenas dígitos) e valida formato
+            const cnpjDigits = String(cnpj).replace(/\D/g, '');
+            if (cnpjDigits.length !== 14) {
+                throw { status: 400, mensagem: 'CNPJ inválido. Deve conter 14 dígitos numéricos.' };
+            }
+            // Verifica se outro fornecedor já possui este CNPJ
+            const fornecedorComCnpj = await FornecedorRepository.buscarPorCnpj(cnpjDigits);
+            if (fornecedorComCnpj && Number(fornecedorComCnpj.id) !== Number(id)) {
+                throw { status: 409, mensagem: 'Outro fornecedor já possui este CNPJ.' };
+            }
+            dadosAtualizados.cnpj = cnpjDigits;
+        }
 
         if (Object.keys(dadosAtualizados).length === 0) {
             throw { status: 400, mensagem: 'Nenhum campo para atualizar' };
