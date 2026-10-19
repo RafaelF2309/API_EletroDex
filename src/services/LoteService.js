@@ -3,9 +3,22 @@ const ProdutoRepository = require('../repositories/ProdutoRepository');
 const FornecedorRepository = require('../repositories/FornecedorRepository');
 
 class LoteService {
-    async listarLotes() {
-        const lotes = await LoteRepository.listarTodos();
-        return { sucesso: true, dados: lotes, total: lotes.length };
+    async listarLotes(filtros = {}) {
+        const page = filtros.page !== undefined ? parseInt(filtros.page, 10) : null;
+        const limit = filtros.limit !== undefined ? parseInt(filtros.limit, 10) : null;
+
+        const lotes = await LoteRepository.listarTodos(filtros);
+        const total = lotes.total !== undefined ? lotes.total : lotes.length;
+
+        const resposta = { sucesso: true, dados: lotes, total };
+        if (page !== null || limit !== null) {
+            const paginaAtual = page && page > 0 ? page : 1;
+            const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+            resposta.pagina = paginaAtual;
+            resposta.limite = limiteAtual;
+            resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
+        }
+        return resposta;
     }
 
     async buscarLotePorId(id) {
@@ -22,6 +35,17 @@ class LoteService {
         }
         if (!Number.isInteger(Number(quantidade_inicial)) || Number(quantidade_inicial) <= 0) {
             throw { status: 400, mensagem: 'quantidade_inicial deve ser um número inteiro maior que zero' };
+        }
+
+        const dataFabricacao = new Date(dt_fabricacao);
+        const dataValidade = new Date(dt_validade);
+
+        if (isNaN(dataFabricacao.getTime()) || isNaN(dataValidade.getTime())) {
+            throw { status: 400, mensagem: 'Formato de data inválido' };
+        }
+
+        if (dataValidade <= dataFabricacao) {
+            throw { status: 400, mensagem: 'A data de validade deve ser posterior à data de fabricação' };
         }
 
         if (!await ProdutoRepository.buscarPorId(id_produto)) {
@@ -48,12 +72,47 @@ class LoteService {
         return { sucesso: true, mensagem: 'Lote e estoque inicial cadastrados com sucesso', dados: loteCriado };
     }
 
+    async listarLotesVencendo(dias) {
+        let diasNum = 30;
+        if (dias !== undefined && dias !== null && dias !== '') {
+            diasNum = parseInt(dias, 10);
+            if (isNaN(diasNum) || diasNum < 0) {
+                throw { status: 400, mensagem: 'O parâmetro dias deve ser um número maior ou igual a zero' };
+            }
+        }
+
+        const lotes = await LoteRepository.listarVencendo(diasNum);
+        const formatados = lotes.map(l => ({
+            ...l,
+            quantidade_inicial: Number(l.quantidade_inicial),
+            qtd_atual: Number(l.qtd_atual ?? 0),
+            dias_para_vencer: Number(l.dias_para_vencer),
+            vencido: Boolean(l.vencido)
+        }));
+        return { sucesso: true, dados: formatados, total: formatados.length };
+    }
+
     async atualizarLote(id, dados) {
         if (!id || isNaN(id)) throw { status: 400, mensagem: 'ID inválido' };
-        if (!await LoteRepository.buscarPorId(id)) throw { status: 404, mensagem: 'Lote não encontrado' };
+        const loteExiste = await LoteRepository.buscarPorId(id);
+        if (!loteExiste) throw { status: 404, mensagem: 'Lote não encontrado' };
 
         const { id_produto, numero_lote, dt_fabricacao, dt_validade, quantidade_inicial, id_fornecedor } = dados;
         const dadosAtualizados = {};
+
+        if (dt_fabricacao !== undefined || dt_validade !== undefined) {
+            const dataFabFinal = new Date(dt_fabricacao !== undefined ? dt_fabricacao : loteExiste.dt_fabricacao);
+            const dataValFinal = new Date(dt_validade !== undefined ? dt_validade : loteExiste.dt_validade);
+
+            if (isNaN(dataFabFinal.getTime()) || isNaN(dataValFinal.getTime())) {
+                throw { status: 400, mensagem: 'Formato de data inválido' };
+            }
+
+            if (dataValFinal <= dataFabFinal) {
+                throw { status: 400, mensagem: 'A data de validade deve ser posterior à data de fabricação' };
+            }
+        }
+
         if (id_produto !== undefined) dadosAtualizados.id_produto = id_produto;
         if (numero_lote !== undefined) dadosAtualizados.numero_lote = numero_lote;
         if (dt_fabricacao !== undefined) dadosAtualizados.dt_fabricacao = dt_fabricacao;

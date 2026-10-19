@@ -18,16 +18,34 @@ app.get('/', (req, res) => {
 });
 
 // Middleware para rota não encontrada
-app.use((req, res) => {
-    res.status(404).json({ sucesso: false, mensagem: 'Rota não encontrada' });
+app.use((req, res, next) => {
+    const erro = new Error('Rota não encontrada');
+    erro.status = 404;
+    next(erro);
 });
 
 // Middleware genérico de tratamento de erros
+// Recebe erros de qualquer controller via next(erro)
 app.use((err, req, res, next) => {
-    console.error(err);
     const status = err.status || 500;
-    const mensagem = err.mensagem || 'Erro interno do servidor';
-    res.status(status).json({ sucesso: false, mensagem });
+    const mensagem = err.mensagem || (status >= 500
+        ? 'Erro interno do servidor'
+        : err.message || 'Erro interno do servidor');
+
+    // Loga apenas erros de servidor (5xx) para não poluir o console com 4xx esperados
+    if (status >= 500) {
+        console.error(`[ERRO ${status}] ${req.method} ${req.originalUrl}`);
+        console.error(err.stack || err);
+    }
+
+    const resposta = { sucesso: false, mensagem };
+
+    // Expõe stack trace apenas em desenvolvimento
+    if (status >= 500 && process.env.NODE_ENV === 'development') {
+        resposta.detalhe = err.stack;
+    }
+
+    res.status(status).json(resposta);
 });
 
 module.exports = app;

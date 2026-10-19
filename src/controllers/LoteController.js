@@ -1,48 +1,57 @@
 const LoteService = require('../services/LoteService');
 
 class LoteController {
-    async listar(req, res) {
+    async listar(req, res, next) {
         try {
-            const resultado = await LoteService.listarLotes();
-            res.status(200).json(resultado);
+            const resultado = await LoteService.listarLotes(req.query);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async buscarPorId(req, res) {
+    async listarVencendo(req, res, next) {
+        try {
+            const resultado = await LoteService.listarLotesVencendo(req.query.dias);
+            return res.status(200).json(resultado);
+        } catch (erro) {
+            next(erro);
+        }
+    }
+
+    async buscarPorId(req, res, next) {
         try {
             const resultado = await LoteService.buscarLotePorId(req.params.id);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async criar(req, res) {
+    async criar(req, res, next) {
         try {
             const resultado = await LoteService.criarLote(req.body);
-            res.status(201).json(resultado);
+            return res.status(201).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async atualizar(req, res) {
+    async atualizar(req, res, next) {
         try {
             const resultado = await LoteService.atualizarLote(req.params.id, req.body);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 
-    async remover(req, res) {
+    async remover(req, res, next) {
         try {
             const resultado = await LoteService.removerLote(req.params.id);
-            res.status(200).json(resultado);
+            return res.status(200).json(resultado);
         } catch (erro) {
-            res.status(erro.status || 500).json({ sucesso: false, mensagem: erro.mensagem || erro.message });
+            next(erro);
         }
     }
 }

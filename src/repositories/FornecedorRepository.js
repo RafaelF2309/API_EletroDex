@@ -28,9 +28,8 @@ class FornecedorRepository {
         const [resultados] = await pool.query(
             `SELECT
                 (SELECT COUNT(*) FROM lote WHERE id_fornecedor = ?) +
-                (SELECT COUNT(*) FROM entrada WHERE id_fornecedor = ?) +
-                (SELECT COUNT(*) FROM saida WHERE id_fornecedor = ?) AS total`,
-            [id, id, id]
+                (SELECT COUNT(*) FROM entrada WHERE id_fornecedor = ?) AS total`,
+            [id, id]
         );
         return Number(resultados[0].total);
     }

@@ -3,7 +3,7 @@ const ProdutoService = require('../services/ProdutoService');
 class ProdutoController {
     async listar(req, res, next) {
         try {
-            const resultado = await ProdutoService.listarProdutos();
+            const resultado = await ProdutoService.listarProdutos(req.query);
             return res.status(200).json(resultado);
         } catch (erro) {
             next(erro);

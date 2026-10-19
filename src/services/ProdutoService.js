@@ -1,15 +1,28 @@
 const ProdutoRepository = require('../repositories/ProdutoRepository');
 
 class ProdutoService {
-    async listarProdutos() {
-        const produtos = await ProdutoRepository.listarTodos();
+    async listarProdutos(filtros = {}) {
+        const page = filtros.page !== undefined ? parseInt(filtros.page, 10) : null;
+        const limit = filtros.limit !== undefined ? parseInt(filtros.limit, 10) : null;
+
+        const produtos = await ProdutoRepository.listarTodos(filtros);
         const formatados = produtos.map(p => ({
             ...p,
             qtd_atual: Number(p.qtd_atual ?? 0),
             estoque_minimo: Number(p.estoque_minimo ?? 0),
             abaixo_do_minimo: Boolean(p.abaixo_do_minimo)
         }));
-        return { sucesso: true, dados: formatados, total: formatados.length };
+        const total = produtos.total !== undefined ? produtos.total : formatados.length;
+
+        const resposta = { sucesso: true, dados: formatados, total };
+        if (page !== null || limit !== null) {
+            const paginaAtual = page && page > 0 ? page : 1;
+            const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+            resposta.pagina = paginaAtual;
+            resposta.limite = limiteAtual;
+            resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
+        }
+        return resposta;
     }
 
     async listarProdutosAbaixoDoMinimo() {

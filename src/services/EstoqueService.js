@@ -3,14 +3,27 @@ const ProdutoRepository = require('../repositories/ProdutoRepository');
 const LoteRepository = require('../repositories/LoteRepository');
 
 class EstoqueService {
-    async listarEstoques() {
-        const estoques = await EstoqueRepository.listarTodos();
+    async listarEstoques(filtros = {}) {
+        const page = filtros.page !== undefined ? parseInt(filtros.page, 10) : null;
+        const limit = filtros.limit !== undefined ? parseInt(filtros.limit, 10) : null;
+
+        const estoques = await EstoqueRepository.listarTodos(filtros);
         const formatados = estoques.map(e => ({
             ...e,
             qtd_atual: Number(e.qtd_atual),
             estoque_minimo: e.estoque_minimo != null ? Number(e.estoque_minimo) : 0
         }));
-        return { sucesso: true, dados: formatados, total: formatados.length };
+        const total = estoques.total !== undefined ? estoques.total : formatados.length;
+
+        const resposta = { sucesso: true, dados: formatados, total };
+        if (page !== null || limit !== null) {
+            const paginaAtual = page && page > 0 ? page : 1;
+            const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+            resposta.pagina = paginaAtual;
+            resposta.limite = limiteAtual;
+            resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
+        }
+        return resposta;
     }
 
     async ajustarEstoque(id, dados, id_usuario) {
@@ -128,6 +141,43 @@ class EstoqueService {
 
         await EstoqueRepository.remover(id);
         return { sucesso: true, mensagem: 'Registro de estoque removido com sucesso' };
+    }
+
+    async listarAjustes(filtros = {}) {
+        const page = filtros.page !== undefined ? parseInt(filtros.page, 10) : null;
+        const limit = filtros.limit !== undefined ? parseInt(filtros.limit, 10) : null;
+
+        const ajustes = await EstoqueRepository.listarAjustes(filtros);
+        const formatados = ajustes.map(a => ({
+            ...a,
+            qtd_anterior: Number(a.qtd_anterior),
+            diferenca: Number(a.diferenca),
+            qtd_nova: Number(a.qtd_nova)
+        }));
+        const total = ajustes.total !== undefined ? ajustes.total : formatados.length;
+
+        const resposta = { sucesso: true, dados: formatados, total };
+        if (page !== null || limit !== null) {
+            const paginaAtual = page && page > 0 ? page : 1;
+            const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+            resposta.pagina = paginaAtual;
+            resposta.limite = limiteAtual;
+            resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
+        }
+        return resposta;
+    }
+
+    async listarAjustesPorEstoque(id, filtros = {}) {
+        if (!id || isNaN(id)) {
+            throw { status: 400, mensagem: 'ID inválido' };
+        }
+
+        const estoqueExiste = await EstoqueRepository.buscarPorId(id);
+        if (!estoqueExiste) {
+            throw { status: 404, mensagem: 'Registro de estoque não encontrado' };
+        }
+
+        return await this.listarAjustes({ ...filtros, id_estoque: Number(id) });
     }
 }
 

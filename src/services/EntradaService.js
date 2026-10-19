@@ -6,9 +6,22 @@ const EstoqueRepository = require("../repositories/EstoqueRepository");
 const LoteRepository = require("../repositories/LoteRepository");
 
 class EntradaService {
-  async listarEntradas() {
-    const entradas = await EntradaRepository.listarTodos();
-    return { sucesso: true, dados: entradas, total: entradas.length };
+  async listarEntradas(filtros = {}) {
+    const page = filtros.page !== undefined ? parseInt(filtros.page, 10) : null;
+    const limit = filtros.limit !== undefined ? parseInt(filtros.limit, 10) : null;
+
+    const entradas = await EntradaRepository.listarTodos(filtros);
+    const total = entradas.total !== undefined ? entradas.total : entradas.length;
+
+    const resposta = { sucesso: true, dados: entradas, total };
+    if (page !== null || limit !== null) {
+      const paginaAtual = page && page > 0 ? page : 1;
+      const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+      resposta.pagina = paginaAtual;
+      resposta.limite = limiteAtual;
+      resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
+    }
+    return resposta;
   }
 
   async buscarEntradaPorId(id) {

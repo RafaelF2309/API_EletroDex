@@ -10,6 +10,7 @@ const loteRoutes = require('./loteRoutes');
 const estoqueRoutes = require('./estoqueRoutes');
 const entradaRoutes = require('./entradaRoutes');
 const saidaRoutes = require('./saidaRoutes');
+const ajusteRoutes = require('./ajusteRoutes');
 
 const authMiddleware = require('../middlewares/authMiddleware');
 
@@ -34,5 +35,6 @@ router.use('/lotes', authMiddleware, loteRoutes);
 router.use('/estoque', authMiddleware, estoqueRoutes);
 router.use('/entrada', authMiddleware, entradaRoutes);
 router.use('/saida', authMiddleware, saidaRoutes);
+router.use('/ajustes', authMiddleware, ajusteRoutes);
 
 module.exports = router;

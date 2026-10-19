@@ -89,14 +89,13 @@ CREATE TABLE IF NOT EXISTS entrada (
 CREATE TABLE IF NOT EXISTS saida (
     id_saida INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
-    id_fornecedor INT NOT NULL,
     id_produto INT NOT NULL,
     id_lote INT NOT NULL,
     data DATETIME NOT NULL,
     quantidade INT NOT NULL CHECK (quantidade > 0),
+    motivo VARCHAR(100),
     rastreamento VARCHAR(100),
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
-    FOREIGN KEY (id_fornecedor) REFERENCES fornecedor(id_fornecedor),
     FOREIGN KEY (id_lote) REFERENCES lote(id_lote),
     FOREIGN KEY (id_produto) REFERENCES produto(id_produto)
 );

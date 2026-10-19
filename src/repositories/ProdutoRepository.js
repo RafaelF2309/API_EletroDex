@@ -1,9 +1,37 @@
 const pool = require('../config/database');
 
 class ProdutoRepository {
-    async listarTodos() {
-        const [produtos] = await pool.query(
-            `SELECT 
+    async listarTodos(filtros = {}) {
+        const whereConditions = [];
+        const params = [];
+
+        if (filtros.nome) {
+            whereConditions.push('p.nome LIKE ?');
+            params.push(`%${filtros.nome}%`);
+        }
+
+        if (filtros.cod_barras) {
+            whereConditions.push('p.cod_barras = ?');
+            params.push(filtros.cod_barras);
+        }
+
+        const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')}` : '';
+
+        const temPaginacao = filtros.page !== undefined || filtros.limit !== undefined;
+        let totalCount = null;
+
+        if (temPaginacao) {
+            const countQuery = `
+                SELECT COUNT(*) AS total
+                FROM produto p
+                ${whereClause}
+            `;
+            const [countRows] = await pool.query(countQuery, params);
+            totalCount = Number(countRows[0]?.total || 0);
+        }
+
+        let query = `
+            SELECT 
                 p.id_produto,
                 p.nome,
                 p.descricao,
@@ -16,9 +44,28 @@ class ProdutoRepository {
                     OR (CAST(COALESCE(SUM(e.qtd_atual), 0) AS SIGNED) < p.estoque_minimo)) AS abaixo_do_minimo
             FROM produto p
             LEFT JOIN estoque e ON p.id_produto = e.id_produto
+            ${whereClause}
             GROUP BY p.id_produto, p.nome, p.descricao, p.estoque_minimo, p.cod_barras, p.preco, p.imagem
-            ORDER BY p.id_produto DESC`
-        );
+            ORDER BY p.id_produto DESC
+        `;
+
+        const queryParams = [...params];
+
+        if (temPaginacao) {
+            const pageNum = Math.max(1, parseInt(filtros.page, 10) || 1);
+            const limitNum = Math.max(1, Math.min(100, parseInt(filtros.limit, 10) || 10));
+            const offsetNum = (pageNum - 1) * limitNum;
+
+            query += ' LIMIT ? OFFSET ?';
+            queryParams.push(limitNum, offsetNum);
+        }
+
+        const [produtos] = await pool.query(query, queryParams);
+
+        if (temPaginacao) {
+            produtos.total = totalCount;
+        }
+
         return produtos;
     }
 
