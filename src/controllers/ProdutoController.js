@@ -79,6 +79,9 @@ class ProdutoController {
                 }
                 throw erro;
             }
+        } catch (erro) {
+            next(erro);
+        }
     }
 
     async remover(req, res, next) {
