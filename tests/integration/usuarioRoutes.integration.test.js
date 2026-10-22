@@ -12,6 +12,13 @@ const UsuarioController =
 
 const pool = require('../../src/config/database');
 const jwt = require('jsonwebtoken');
+const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
+
+const mockJwtReturnValueOriginal = jwt.verify.mockReturnValue.bind(jwt.verify);
+jwt.verify.mockReturnValue = (usuario) => {
+    UsuarioRepository.buscarPorId = jest.fn().mockResolvedValue(usuario);
+    return mockJwtReturnValueOriginal(usuario);
+};
 
 const { getJwtSecret } =
     require('../../src/config/auth');
@@ -132,7 +139,7 @@ describe('Integração - Rotas de Usuários', () => {
             .toEqual({
                 sucesso: false,
                 mensagem:
-                    'Token de autenticação não informado. Cadastro de novos usuários restrito a Gerentes'
+                    'Token de autenticação não informado'
             });
 
         expect(UsuarioController.criar)

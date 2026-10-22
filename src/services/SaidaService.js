@@ -13,13 +13,16 @@ class SaidaService {
         const total = saidas.total !== undefined ? saidas.total : saidas.length;
 
         const resposta = { sucesso: true, dados: saidas, total };
+
         if (page !== null || limit !== null) {
             const paginaAtual = page && page > 0 ? page : 1;
             const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+
             resposta.pagina = paginaAtual;
             resposta.limite = limiteAtual;
             resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
         }
+
         return resposta;
     }
 
@@ -39,7 +42,15 @@ class SaidaService {
 
     async criarSaida(dados, id_usuario_autenticado) {
         const id_usuario = id_usuario_autenticado || dados.id_usuario;
-        const { id_produto, data, id_lote, quantidade, motivo, rastreamento } = dados;
+
+        const {
+            id_produto,
+            data,
+            id_lote,
+            quantidade,
+            motivo,
+            rastreamento
+        } = dados;
 
         if (!id_usuario) {
             throw {
@@ -56,22 +67,37 @@ class SaidaService {
         }
 
         if (quantidade <= 0) {
-            throw { status: 400, mensagem: 'A quantidade deve ser maior que zero' };
+            throw {
+                status: 400,
+                mensagem: 'A quantidade deve ser maior que zero'
+            };
         }
 
         const usuario = await UsuarioRepository.buscarPorId(id_usuario);
+
         if (!usuario) {
-            throw { status: 404, mensagem: 'Usuário informado não existe' };
+            throw {
+                status: 404,
+                mensagem: 'Usuário informado não existe'
+            };
         }
 
         const produto = await ProdutoRepository.buscarPorId(id_produto);
+
         if (!produto) {
-            throw { status: 404, mensagem: 'Produto informado não existe' };
+            throw {
+                status: 404,
+                mensagem: 'Produto informado não existe'
+            };
         }
 
         const lote = await LoteRepository.buscarPorId(id_lote);
+
         if (!lote) {
-            throw { status: 404, mensagem: 'Lote informado não existe' };
+            throw {
+                status: 404,
+                mensagem: 'Lote informado não existe'
+            };
         }
 
         if (lote.id_produto !== id_produto) {
@@ -83,7 +109,9 @@ class SaidaService {
 
         if (lote.dt_validade) {
             const dataValidade = new Date(lote.dt_validade);
+
             dataValidade.setHours(23, 59, 59, 999);
+
             if (dataValidade < new Date()) {
                 throw {
                     status: 400,
@@ -93,8 +121,12 @@ class SaidaService {
         }
 
         const estoque = await EstoqueRepository.buscarPorLote(id_lote);
+
         if (!estoque) {
-            throw { status: 404, mensagem: 'Estoque não encontrado para o lote informado' };
+            throw {
+                status: 404,
+                mensagem: 'Estoque não encontrado para o lote informado'
+            };
         }
 
         if (estoque.qtd_atual < quantidade) {
@@ -114,24 +146,47 @@ class SaidaService {
             rastreamento: rastreamento ?? null
         });
 
-        await EstoqueRepository.alterarQuantidade(estoque.id_estoque, -quantidade);
+        await EstoqueRepository.alterarQuantidade(
+            estoque.id_estoque,
+            -quantidade
+        );
 
         const saidaCriada = await SaidaRepository.buscarPorId(novoId);
 
-        return { sucesso: true, mensagem: 'Movimentação de saída cadastrada com sucesso', dados: saidaCriada };
+        return {
+            sucesso: true,
+            mensagem: 'Movimentação de saída cadastrada com sucesso',
+            dados: saidaCriada
+        };
     }
 
     async atualizarSaida(id, dados) {
         if (!id || isNaN(id)) {
-            throw { status: 400, mensagem: 'ID inválido' };
+            throw {
+                status: 400,
+                mensagem: 'ID inválido'
+            };
         }
 
         const saidaExiste = await SaidaRepository.buscarPorId(id);
+
         if (!saidaExiste) {
-            throw { status: 404, mensagem: 'Movimentação de saída não encontrada' };
+            throw {
+                status: 404,
+                mensagem: 'Movimentação de saída não encontrada'
+            };
         }
 
-        const { id_usuario, id_produto, data, id_lote, quantidade, motivo, rastreamento } = dados;
+        const {
+            id_usuario,
+            id_produto,
+            data,
+            id_lote,
+            quantidade,
+            motivo,
+            rastreamento
+        } = dados;
+
         const dadosAtualizados = {};
 
         if (id_usuario !== undefined) {
@@ -140,20 +195,30 @@ class SaidaService {
                 mensagem: 'Não é permitido alterar o usuário de uma movimentação'
             };
         }
+
         if (id_produto !== undefined) {
             if (!await ProdutoRepository.buscarPorId(id_produto)) {
-                throw { status: 404, mensagem: 'Produto informado não existe' };
+                throw {
+                    status: 404,
+                    mensagem: 'Produto informado não existe'
+                };
             }
+
             dadosAtualizados.id_produto = id_produto;
         }
 
         if (id_lote !== undefined) {
             const lote = await LoteRepository.buscarPorId(id_lote);
+
             if (!lote) {
-                throw { status: 404, mensagem: 'Lote informado não existe' };
+                throw {
+                    status: 404,
+                    mensagem: 'Lote informado não existe'
+                };
             }
 
             const produtoParaValidar = id_produto ?? saidaExiste.id_produto;
+
             if (lote.id_produto !== produtoParaValidar) {
                 throw {
                     status: 400,
@@ -163,7 +228,9 @@ class SaidaService {
 
             if (lote.dt_validade) {
                 const dataValidade = new Date(lote.dt_validade);
+
                 dataValidade.setHours(23, 59, 59, 999);
+
                 if (dataValidade < new Date()) {
                     throw {
                         status: 400,
@@ -175,18 +242,34 @@ class SaidaService {
             dadosAtualizados.id_lote = id_lote;
         }
 
-        if (data !== undefined) dadosAtualizados.data = data;
+        if (data !== undefined) {
+            dadosAtualizados.data = data;
+        }
+
         if (quantidade !== undefined) {
             if (quantidade <= 0) {
-                throw { status: 400, mensagem: 'A quantidade deve ser maior que zero' };
+                throw {
+                    status: 400,
+                    mensagem: 'A quantidade deve ser maior que zero'
+                };
             }
+
             dadosAtualizados.quantidade = quantidade;
         }
-        if (motivo !== undefined) dadosAtualizados.motivo = motivo;
-        if (rastreamento !== undefined) dadosAtualizados.rastreamento = rastreamento;
+
+        if (motivo !== undefined) {
+            dadosAtualizados.motivo = motivo;
+        }
+
+        if (rastreamento !== undefined) {
+            dadosAtualizados.rastreamento = rastreamento;
+        }
 
         if (Object.keys(dadosAtualizados).length === 0) {
-            throw { status: 400, mensagem: 'Nenhum campo para atualizar' };
+            throw {
+                status: 400,
+                mensagem: 'Nenhum campo para atualizar'
+            };
         }
 
         // =========================
@@ -199,10 +282,15 @@ class SaidaService {
         const idLoteNovo = id_lote ?? idLoteAntigo;
         const quantidadeNova = quantidade ?? quantidadeAntiga;
 
-        // Se mudou o produto mas não o lote, validar compatibilidade
+        // Se mudou o produto mas não mudou o lote,
+        // verifica se o lote pertence ao novo produto.
         if (id_produto !== undefined && id_lote === undefined) {
             const loteExistente = await LoteRepository.buscarPorId(idLoteAntigo);
-            if (loteExistente && loteExistente.id_produto !== id_produto) {
+
+            if (
+                loteExistente &&
+                loteExistente.id_produto !== id_produto
+            ) {
                 throw {
                     status: 400,
                     mensagem: 'O lote atual não pertence ao novo produto informado. Informe também um novo id_lote.'
@@ -214,59 +302,121 @@ class SaidaService {
         // AJUSTAR ESTOQUE
         // =========================
 
-        const estoqueAntigo = await EstoqueRepository.buscarPorLote(idLoteAntigo);
+        const estoqueAntigo =
+            await EstoqueRepository.buscarPorLote(idLoteAntigo);
+
         if (!estoqueAntigo) {
-            throw { status: 404, mensagem: 'Estoque antigo não encontrado' };
+            throw {
+                status: 404,
+                mensagem: 'Estoque antigo não encontrado'
+            };
         }
 
         if (idLoteNovo !== idLoteAntigo) {
-            const estoqueNovo = await EstoqueRepository.buscarPorLote(idLoteNovo);
+            const estoqueNovo =
+                await EstoqueRepository.buscarPorLote(idLoteNovo);
+
             if (!estoqueNovo) {
-                throw { status: 404, mensagem: 'Estoque novo não encontrado para o lote informado' };
+                throw {
+                    status: 404,
+                    mensagem: 'Estoque novo não encontrado para o lote informado'
+                };
             }
 
-            // Devolver ao estoque antigo
-            await EstoqueRepository.alterarQuantidade(estoqueAntigo.id_estoque, quantidadeAntiga);
+            // Devolve ao estoque antigo
+            await EstoqueRepository.alterarQuantidade(
+                estoqueAntigo.id_estoque,
+                quantidadeAntiga
+            );
 
-            // Retirar do estoque novo
+            // Verifica se existe quantidade suficiente no novo lote
             if (estoqueNovo.qtd_atual < quantidadeNova) {
                 throw {
                     status: 400,
                     mensagem: `Estoque insuficiente no novo lote. Disponível: ${estoqueNovo.qtd_atual}, solicitado: ${quantidadeNova}`
                 };
             }
-            await EstoqueRepository.alterarQuantidade(estoqueNovo.id_estoque, -quantidadeNova);
+
+            // Retira do novo lote
+            await EstoqueRepository.alterarQuantidade(
+                estoqueNovo.id_estoque,
+                -quantidadeNova
+            );
+
         } else if (quantidade !== undefined) {
             const diferenca = quantidadeNova - quantidadeAntiga;
+
             if (diferenca !== 0) {
-                if (diferenca > 0 && estoqueAntigo.qtd_atual < diferenca) {
+                if (
+                    diferenca > 0 &&
+                    estoqueAntigo.qtd_atual < diferenca
+                ) {
                     throw {
                         status: 400,
                         mensagem: `Estoque insuficiente. Disponível: ${estoqueAntigo.qtd_atual}, diferença necessária: ${diferenca}`
                     };
                 }
-                await EstoqueRepository.alterarQuantidade(estoqueAntigo.id_estoque, -diferenca);
+
+                await EstoqueRepository.alterarQuantidade(
+                    estoqueAntigo.id_estoque,
+                    -diferenca
+                );
             }
         }
 
         await SaidaRepository.atualizar(id, dadosAtualizados);
-        const saidaAtualizada = await SaidaRepository.buscarPorId(id);
 
-        return { sucesso: true, mensagem: 'Movimentação de saída atualizada com sucesso', dados: saidaAtualizada };
+        const saidaAtualizada =
+            await SaidaRepository.buscarPorId(id);
+
+        return {
+            sucesso: true,
+            mensagem: 'Movimentação de saída atualizada com sucesso',
+            dados: saidaAtualizada
+        };
     }
 
     async removerSaida(id) {
         if (!id || isNaN(id)) {
-            throw { status: 400, mensagem: 'ID inválido' };
+            throw {
+                status: 400,
+                mensagem: 'ID inválido'
+            };
         }
 
-        const saidaExiste = await SaidaRepository.buscarPorId(id);
+        const saidaExiste =
+            await SaidaRepository.buscarPorId(id);
+
         if (!saidaExiste) {
-            throw { status: 404, mensagem: 'Movimentação de saída não encontrada' };
+            throw {
+                status: 404,
+                mensagem: 'Movimentação de saída não encontrada'
+            };
         }
 
+        const estoque =
+            await EstoqueRepository.buscarPorLote(saidaExiste.id_lote);
+
+        if (!estoque) {
+            throw {
+                status: 404,
+                mensagem: 'Estoque não encontrado para o lote da saída'
+            };
+        }
+
+        // Primeiro devolve a quantidade retirada ao estoque.
+        await EstoqueRepository.alterarQuantidade(
+            estoque.id_estoque,
+            Number(saidaExiste.quantidade)
+        );
+
+        // Depois remove o registro da saída.
         await SaidaRepository.remover(id);
-        return { sucesso: true, mensagem: 'Movimentação de saída removida com sucesso' };
+
+        return {
+            sucesso: true,
+            mensagem: 'Movimentação de saída removida com sucesso'
+        };
     }
 }
 

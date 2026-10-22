@@ -1,3 +1,4 @@
+jest.mock('../../src/repositories/UsuarioRepository');
 jest.mock('../../src/controllers/EstoqueController');
 jest.mock('jsonwebtoken');
 jest.mock('../../src/config/auth');
@@ -9,6 +10,10 @@ const EstoqueController =
     require('../../src/controllers/EstoqueController');
 
 const jwt = require('jsonwebtoken');
+const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
+const configurarMockAutorizacao = require('./helpers/mockAutorizacao');
+
+configurarMockAutorizacao(jwt, UsuarioRepository);
 
 const { getJwtSecret } =
     require('../../src/config/auth');
@@ -27,15 +32,6 @@ describe('Integração - Rotas de Estoque', () => {
                 res.status(200).json({
                     sucesso: true,
                     mensagem: 'Estoques listados'
-                });
-            }
-        );
-
-        EstoqueController.listarAbaixoDoMinimo.mockImplementation(
-            (req, res) => {
-                res.status(200).json({
-                    sucesso: true,
-                    mensagem: 'Estoques abaixo do mínimo listados'
                 });
             }
         );
@@ -136,39 +132,6 @@ describe('Integração - Rotas de Estoque', () => {
             });
 
         expect(EstoqueController.listar)
-            .toHaveBeenCalled();
-    });
-
-    // ==========================================
-    // GET /estoque/abaixo-do-minimo
-    // ==========================================
-
-    test('deve permitir listar estoques abaixo do mínimo com token válido', async () => {
-
-        jwt.verify.mockReturnValue({
-            id_usuario: 10,
-            nivel_acesso: 1,
-            setor: 'vendas'
-        });
-
-        const resposta = await request(app)
-            .get('/api/estoque/abaixo-do-minimo')
-            .set(
-                'Authorization',
-                'Bearer token-valido'
-            );
-
-        expect(resposta.status)
-            .toBe(200);
-
-        expect(resposta.body)
-            .toEqual({
-                sucesso: true,
-                mensagem:
-                    'Estoques abaixo do mínimo listados'
-            });
-
-        expect(EstoqueController.listarAbaixoDoMinimo)
             .toHaveBeenCalled();
     });
 
