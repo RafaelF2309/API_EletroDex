@@ -1,12 +1,72 @@
 const pool = require('../config/database');
 
 class EstoqueRepository {
-    async listarTodos() {
-        const [estoques] = await pool.query(
-            `SELECT 
+    async listarTodos(filtros = {}) {
+        const whereConditions = [];
+        const params = [];
+
+        if (filtros.id_produto) {
+            whereConditions.push('e.id_produto = ?');
+            params.push(Number(filtros.id_produto));
+        } else if (filtros.produto) {
+            if (!isNaN(filtros.produto)) {
+                whereConditions.push('e.id_produto = ?');
+                params.push(Number(filtros.produto));
+            } else {
+                whereConditions.push('p.nome LIKE ?');
+                params.push(`%${filtros.produto}%`);
+            }
+        }
+
+        if (filtros.id_lote) {
+            whereConditions.push('e.id_lote = ?');
+            params.push(Number(filtros.id_lote));
+        } else if (filtros.numero_lote) {
+            whereConditions.push('l.numero_lote LIKE ?');
+            params.push(`%${filtros.numero_lote}%`);
+        } else if (filtros.lote) {
+            if (!isNaN(filtros.lote)) {
+                whereConditions.push('e.id_lote = ?');
+                params.push(Number(filtros.lote));
+            } else {
+                whereConditions.push('l.numero_lote LIKE ?');
+                params.push(`%${filtros.lote}%`);
+            }
+        }
+
+        if (filtros.localizacao_corredor) {
+            whereConditions.push('e.localizacao_corredor = ?');
+            params.push(filtros.localizacao_corredor);
+        }
+
+        if (filtros.localizacao_prateleira) {
+            whereConditions.push('e.localizacao_prateleira = ?');
+            params.push(filtros.localizacao_prateleira);
+        }
+
+        const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')}` : '';
+
+        const temPaginacao = filtros.page !== undefined || filtros.limit !== undefined;
+        let totalCount = null;
+
+        if (temPaginacao) {
+            const countQuery = `
+                SELECT COUNT(*) AS total
+                FROM estoque e
+                LEFT JOIN produto p ON e.id_produto = p.id_produto
+                LEFT JOIN lote l ON e.id_lote = l.id_lote
+                ${whereClause}
+            `;
+            const [countRows] = await pool.query(countQuery, params);
+            totalCount = Number(countRows[0]?.total || 0);
+        }
+
+        let query = `
+            SELECT 
                 e.id_estoque,
                 e.id_produto,
                 e.id_lote,
+                l.numero_lote,
                 e.qtd_atual,
                 e.localizacao_corredor,
                 e.localizacao_prateleira,
@@ -14,8 +74,28 @@ class EstoqueRepository {
                 p.estoque_minimo
             FROM estoque e
             LEFT JOIN produto p ON e.id_produto = p.id_produto
-            ORDER BY e.id_estoque DESC`
-        );
+            LEFT JOIN lote l ON e.id_lote = l.id_lote
+            ${whereClause}
+            ORDER BY e.id_estoque DESC
+        `;
+
+        const queryParams = [...params];
+
+        if (temPaginacao) {
+            const pageNum = Math.max(1, parseInt(filtros.page, 10) || 1);
+            const limitNum = Math.max(1, Math.min(100, parseInt(filtros.limit, 10) || 10));
+            const offsetNum = (pageNum - 1) * limitNum;
+
+            query += ' LIMIT ? OFFSET ?';
+            queryParams.push(limitNum, offsetNum);
+        }
+
+        const [estoques] = await pool.query(query, queryParams);
+
+        if (temPaginacao) {
+            estoques.total = totalCount;
+        }
+
         return estoques;
     }
 
@@ -130,6 +210,132 @@ class EstoqueRepository {
             [dados, id]
         );
         return resultado.affectedRows > 0;
+    }
+
+    async listarAjustes(filtros = {}) {
+        const whereConditions = [];
+        const params = [];
+
+        const dataInicio = filtros.data_inicio || filtros.periodo_inicio;
+        if (dataInicio) {
+            whereConditions.push('a.ajuste_em >= ?');
+            params.push(dataInicio.length === 10 ? `${dataInicio} 00:00:00` : dataInicio);
+        }
+
+        const dataFim = filtros.data_fim || filtros.periodo_fim;
+        if (dataFim) {
+            whereConditions.push('a.ajuste_em <= ?');
+            params.push(dataFim.length === 10 ? `${dataFim} 23:59:59` : dataFim);
+        }
+
+        if (filtros.id_estoque) {
+            whereConditions.push('e.id_estoque = ?');
+            params.push(Number(filtros.id_estoque));
+        }
+
+        if (filtros.id_produto) {
+            whereConditions.push('a.id_produto = ?');
+            params.push(Number(filtros.id_produto));
+        } else if (filtros.produto) {
+            if (!isNaN(filtros.produto)) {
+                whereConditions.push('a.id_produto = ?');
+                params.push(Number(filtros.produto));
+            } else {
+                whereConditions.push('p.nome LIKE ?');
+                params.push(`%${filtros.produto}%`);
+            }
+        }
+
+        if (filtros.id_lote) {
+            whereConditions.push('a.id_lote = ?');
+            params.push(Number(filtros.id_lote));
+        } else if (filtros.numero_lote) {
+            whereConditions.push('l.numero_lote LIKE ?');
+            params.push(`%${filtros.numero_lote}%`);
+        } else if (filtros.lote) {
+            if (!isNaN(filtros.lote)) {
+                whereConditions.push('a.id_lote = ?');
+                params.push(Number(filtros.lote));
+            } else {
+                whereConditions.push('l.numero_lote LIKE ?');
+                params.push(`%${filtros.lote}%`);
+            }
+        }
+
+        if (filtros.id_usuario) {
+            whereConditions.push('a.id_usuario = ?');
+            params.push(Number(filtros.id_usuario));
+        } else if (filtros.usuario) {
+            if (!isNaN(filtros.usuario)) {
+                whereConditions.push('a.id_usuario = ?');
+                params.push(Number(filtros.usuario));
+            } else {
+                whereConditions.push('u.nome LIKE ?');
+                params.push(`%${filtros.usuario}%`);
+            }
+        }
+
+        const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')}` : '';
+
+        const temPaginacao = filtros.page !== undefined || filtros.limit !== undefined;
+        let totalCount = null;
+
+        if (temPaginacao) {
+            const countQuery = `
+                SELECT COUNT(*) AS total
+                FROM ajustes a
+                INNER JOIN usuario u ON a.id_usuario = u.id_usuario
+                INNER JOIN produto p ON a.id_produto = p.id_produto
+                INNER JOIN lote l ON a.id_lote = l.id_lote
+                LEFT JOIN estoque e ON (a.id_produto = e.id_produto AND a.id_lote = e.id_lote)
+                ${whereClause}
+            `;
+            const [countRows] = await pool.query(countQuery, params);
+            totalCount = Number(countRows[0]?.total || 0);
+        }
+
+        let query = `
+            SELECT 
+                a.id_ajuste,
+                e.id_estoque,
+                a.id_usuario,
+                u.nome AS nome_usuario,
+                a.id_produto,
+                p.nome AS nome_produto,
+                a.id_lote,
+                l.numero_lote,
+                a.qtd_anterior,
+                a.diferenca,
+                a.qtd_nova,
+                a.ajuste_em,
+                a.motivo
+            FROM ajustes a
+            INNER JOIN usuario u ON a.id_usuario = u.id_usuario
+            INNER JOIN produto p ON a.id_produto = p.id_produto
+            INNER JOIN lote l ON a.id_lote = l.id_lote
+            LEFT JOIN estoque e ON (a.id_produto = e.id_produto AND a.id_lote = e.id_lote)
+            ${whereClause}
+            ORDER BY a.id_ajuste DESC
+        `;
+
+        const queryParams = [...params];
+
+        if (temPaginacao) {
+            const pageNum = Math.max(1, parseInt(filtros.page, 10) || 1);
+            const limitNum = Math.max(1, Math.min(100, parseInt(filtros.limit, 10) || 10));
+            const offsetNum = (pageNum - 1) * limitNum;
+
+            query += ' LIMIT ? OFFSET ?';
+            queryParams.push(limitNum, offsetNum);
+        }
+
+        const [ajustes] = await pool.query(query, queryParams);
+
+        if (temPaginacao) {
+            ajustes.total = totalCount;
+        }
+
+        return ajustes;
     }
 
     async remover(id) {

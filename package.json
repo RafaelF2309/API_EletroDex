@@ -6,7 +6,11 @@
   "scripts": {
   "start": "node src/server.js",
   "dev": "nodemon src/server.js",
-  "test": "jest --runInBand"
+  "test": "jest --runInBand",
+  "test:unit": "jest tests/unit --runInBand",
+  "test:integration": "jest tests/integration/fluxo.integration.test.js --runInBand --forceExit",
+  "test:routes": "jest tests/integration --ignore=tests/integration/fluxo.integration.test.js --runInBand",
+  "test:all": "jest --runInBand --forceExit"
 },
   "keywords": [],
   "author": "",

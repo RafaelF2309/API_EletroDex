@@ -1,14 +1,26 @@
 const SaidaRepository = require('../repositories/SaidaRepository');
 const UsuarioRepository = require('../repositories/UsuarioRepository');
-const FornecedorRepository = require('../repositories/FornecedorRepository');
 const ProdutoRepository = require('../repositories/ProdutoRepository');
 const EstoqueRepository = require('../repositories/EstoqueRepository');
 const LoteRepository = require('../repositories/LoteRepository');
 
 class SaidaService {
-    async listarSaidas() {
-        const saidas = await SaidaRepository.listarTodos();
-        return { sucesso: true, dados: saidas, total: saidas.length };
+    async listarSaidas(filtros = {}) {
+        const page = filtros.page !== undefined ? parseInt(filtros.page, 10) : null;
+        const limit = filtros.limit !== undefined ? parseInt(filtros.limit, 10) : null;
+
+        const saidas = await SaidaRepository.listarTodos(filtros);
+        const total = saidas.total !== undefined ? saidas.total : saidas.length;
+
+        const resposta = { sucesso: true, dados: saidas, total };
+        if (page !== null || limit !== null) {
+            const paginaAtual = page && page > 0 ? page : 1;
+            const limiteAtual = limit && limit > 0 ? limit : (total || 10);
+            resposta.pagina = paginaAtual;
+            resposta.limite = limiteAtual;
+            resposta.total_paginas = Math.ceil(total / limiteAtual) || 1;
+        }
+        return resposta;
     }
 
     async buscarSaidaPorId(id) {
@@ -27,7 +39,7 @@ class SaidaService {
 
     async criarSaida(dados, id_usuario_autenticado) {
         const id_usuario = id_usuario_autenticado || dados.id_usuario;
-        const { id_fornecedor, id_produto, data, id_lote, quantidade, rastreamento } = dados;
+        const { id_produto, data, id_lote, quantidade, motivo, rastreamento } = dados;
 
         if (!id_usuario) {
             throw {
@@ -36,10 +48,10 @@ class SaidaService {
             };
         }
 
-        if (!id_fornecedor || !id_produto || !data || !id_lote || quantidade == null) {
+        if (!id_produto || !data || !id_lote || quantidade == null) {
             throw {
                 status: 400,
-                mensagem: 'Campos obrigatórios faltando: id_fornecedor, id_produto, data, id_lote, quantidade'
+                mensagem: 'Campos obrigatórios faltando: id_produto, data, id_lote, quantidade'
             };
         }
 
@@ -50,11 +62,6 @@ class SaidaService {
         const usuario = await UsuarioRepository.buscarPorId(id_usuario);
         if (!usuario) {
             throw { status: 404, mensagem: 'Usuário informado não existe' };
-        }
-
-        const fornecedor = await FornecedorRepository.buscarPorId(id_fornecedor);
-        if (!fornecedor) {
-            throw { status: 404, mensagem: 'Fornecedor informado não existe' };
         }
 
         const produto = await ProdutoRepository.buscarPorId(id_produto);
@@ -74,6 +81,17 @@ class SaidaService {
             };
         }
 
+        if (lote.dt_validade) {
+            const dataValidade = new Date(lote.dt_validade);
+            dataValidade.setHours(23, 59, 59, 999);
+            if (dataValidade < new Date()) {
+                throw {
+                    status: 400,
+                    mensagem: 'Não é permitido registrar saída de lote vencido'
+                };
+            }
+        }
+
         const estoque = await EstoqueRepository.buscarPorLote(id_lote);
         if (!estoque) {
             throw { status: 404, mensagem: 'Estoque não encontrado para o lote informado' };
@@ -87,7 +105,13 @@ class SaidaService {
         }
 
         const novoId = await SaidaRepository.criar({
-            id_usuario, id_fornecedor, id_produto, data, id_lote, quantidade, rastreamento: rastreamento ?? null
+            id_usuario,
+            id_produto,
+            data,
+            id_lote,
+            quantidade,
+            motivo: motivo ?? null,
+            rastreamento: rastreamento ?? null
         });
 
         await EstoqueRepository.alterarQuantidade(estoque.id_estoque, -quantidade);
@@ -107,7 +131,7 @@ class SaidaService {
             throw { status: 404, mensagem: 'Movimentação de saída não encontrada' };
         }
 
-        const { id_usuario, id_fornecedor, id_produto, data, id_lote, quantidade, rastreamento } = dados;
+        const { id_usuario, id_produto, data, id_lote, quantidade, motivo, rastreamento } = dados;
         const dadosAtualizados = {};
 
         if (id_usuario !== undefined) {
@@ -115,12 +139,6 @@ class SaidaService {
                 status: 400,
                 mensagem: 'Não é permitido alterar o usuário de uma movimentação'
             };
-        }
-        if (id_fornecedor !== undefined) {
-            if (!await FornecedorRepository.buscarPorId(id_fornecedor)) {
-                throw { status: 404, mensagem: 'Fornecedor informado não existe' };
-            }
-            dadosAtualizados.id_fornecedor = id_fornecedor;
         }
         if (id_produto !== undefined) {
             if (!await ProdutoRepository.buscarPorId(id_produto)) {
@@ -143,6 +161,17 @@ class SaidaService {
                 };
             }
 
+            if (lote.dt_validade) {
+                const dataValidade = new Date(lote.dt_validade);
+                dataValidade.setHours(23, 59, 59, 999);
+                if (dataValidade < new Date()) {
+                    throw {
+                        status: 400,
+                        mensagem: 'Não é permitido registrar saída de lote vencido'
+                    };
+                }
+            }
+
             dadosAtualizados.id_lote = id_lote;
         }
 
@@ -153,6 +182,7 @@ class SaidaService {
             }
             dadosAtualizados.quantidade = quantidade;
         }
+        if (motivo !== undefined) dadosAtualizados.motivo = motivo;
         if (rastreamento !== undefined) dadosAtualizados.rastreamento = rastreamento;
 
         if (Object.keys(dadosAtualizados).length === 0) {

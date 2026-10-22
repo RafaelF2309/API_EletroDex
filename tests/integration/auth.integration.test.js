@@ -303,7 +303,7 @@ describe('Integração - Autenticação', () => {
             .toEqual({
                 sucesso: false,
                 mensagem:
-                    'Erro interno ao realizar login'
+                    'Erro interno do servidor'
             });
     });
 });

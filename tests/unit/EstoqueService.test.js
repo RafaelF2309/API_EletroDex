@@ -671,4 +671,147 @@ describe('EstoqueService', () => {
                 .not.toHaveBeenCalled();
         });
     });
+
+    // ==========================================
+    // listarAjustes e listarAjustesPorEstoque
+    // ==========================================
+
+    describe('listarAjustes', () => {
+        test('deve listar todos os ajustes formatados', async () => {
+            const ajustes = [
+                {
+                    id_ajuste: 1,
+                    id_estoque: 10,
+                    id_usuario: 2,
+                    nome_usuario: 'Admin',
+                    id_produto: 5,
+                    nome_produto: 'Teclado',
+                    id_lote: 3,
+                    numero_lote: 'LOT-001',
+                    qtd_anterior: '10',
+                    diferenca: '5',
+                    qtd_nova: '15',
+                    ajuste_em: '2026-03-01 10:00:00',
+                    motivo: 'Ajuste de inventário'
+                }
+            ];
+
+            EstoqueRepository.listarAjustes.mockResolvedValue(ajustes);
+
+            const resultado = await EstoqueService.listarAjustes();
+
+            expect(EstoqueRepository.listarAjustes).toHaveBeenCalledWith({});
+            expect(resultado).toEqual({
+                sucesso: true,
+                dados: [
+                    {
+                        id_ajuste: 1,
+                        id_estoque: 10,
+                        id_usuario: 2,
+                        nome_usuario: 'Admin',
+                        id_produto: 5,
+                        nome_produto: 'Teclado',
+                        id_lote: 3,
+                        numero_lote: 'LOT-001',
+                        qtd_anterior: 10,
+                        diferenca: 5,
+                        qtd_nova: 15,
+                        ajuste_em: '2026-03-01 10:00:00',
+                        motivo: 'Ajuste de inventário'
+                    }
+                ],
+                total: 1
+            });
+        });
+
+        test('deve listar ajustes com paginação e filtros', async () => {
+            const ajustes = [
+                {
+                    id_ajuste: 2,
+                    id_estoque: 10,
+                    id_usuario: 2,
+                    nome_usuario: 'Admin',
+                    id_produto: 5,
+                    nome_produto: 'Teclado',
+                    id_lote: 3,
+                    numero_lote: 'LOT-001',
+                    qtd_anterior: '15',
+                    diferenca: '-2',
+                    qtd_nova: '13',
+                    ajuste_em: '2026-03-02 10:00:00',
+                    motivo: 'Item danificado'
+                }
+            ];
+            ajustes.total = 10;
+
+            EstoqueRepository.listarAjustes.mockResolvedValue(ajustes);
+
+            const filtros = { page: 2, limit: 1, produto: 'Teclado' };
+            const resultado = await EstoqueService.listarAjustes(filtros);
+
+            expect(EstoqueRepository.listarAjustes).toHaveBeenCalledWith(filtros);
+            expect(resultado.pagina).toBe(2);
+            expect(resultado.limite).toBe(1);
+            expect(resultado.total).toBe(10);
+            expect(resultado.total_paginas).toBe(10);
+            expect(resultado.dados[0].qtd_nova).toBe(13);
+        });
+    });
+
+    describe('listarAjustesPorEstoque', () => {
+        test('deve listar ajustes de um estoque específico', async () => {
+            EstoqueRepository.buscarPorId.mockResolvedValue({
+                id_estoque: 10,
+                id_produto: 5,
+                id_lote: 3,
+                qtd_atual: 15
+            });
+
+            const ajustes = [
+                {
+                    id_ajuste: 1,
+                    id_estoque: 10,
+                    id_usuario: 2,
+                    nome_usuario: 'Admin',
+                    id_produto: 5,
+                    nome_produto: 'Teclado',
+                    id_lote: 3,
+                    numero_lote: 'LOT-001',
+                    qtd_anterior: 10,
+                    diferenca: 5,
+                    qtd_nova: 15,
+                    ajuste_em: '2026-03-01 10:00:00',
+                    motivo: 'Inventário'
+                }
+            ];
+            EstoqueRepository.listarAjustes.mockResolvedValue(ajustes);
+
+            const resultado = await EstoqueService.listarAjustesPorEstoque(10, { page: 1 });
+
+            expect(EstoqueRepository.buscarPorId).toHaveBeenCalledWith(10);
+            expect(EstoqueRepository.listarAjustes).toHaveBeenCalledWith({ page: 1, id_estoque: 10 });
+            expect(resultado.sucesso).toBe(true);
+            expect(resultado.dados).toHaveLength(1);
+        });
+
+        test('deve rejeitar ID inválido', async () => {
+            await expect(EstoqueService.listarAjustesPorEstoque('invalido')).rejects.toEqual({
+                status: 400,
+                mensagem: 'ID inválido'
+            });
+
+            expect(EstoqueRepository.buscarPorId).not.toHaveBeenCalled();
+        });
+
+        test('deve rejeitar estoque inexistente com status 404', async () => {
+            EstoqueRepository.buscarPorId.mockResolvedValue(null);
+
+            await expect(EstoqueService.listarAjustesPorEstoque(999)).rejects.toEqual({
+                status: 404,
+                mensagem: 'Registro de estoque não encontrado'
+            });
+
+            expect(EstoqueRepository.listarAjustes).not.toHaveBeenCalled();
+        });
+    });
 });

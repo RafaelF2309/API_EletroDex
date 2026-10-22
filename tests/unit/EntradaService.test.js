@@ -3,6 +3,7 @@ jest.mock('../../src/repositories/UsuarioRepository');
 jest.mock('../../src/repositories/FornecedorRepository');
 jest.mock('../../src/repositories/ProdutoRepository');
 jest.mock('../../src/repositories/EstoqueRepository');
+jest.mock('../../src/repositories/LoteRepository');
 
 const EntradaService = require('../../src/services/EntradaService');
 
@@ -11,6 +12,7 @@ const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
 const FornecedorRepository = require('../../src/repositories/FornecedorRepository');
 const ProdutoRepository = require('../../src/repositories/ProdutoRepository');
 const EstoqueRepository = require('../../src/repositories/EstoqueRepository');
+const LoteRepository = require('../../src/repositories/LoteRepository');
 
 describe('EntradaService', () => {
 
@@ -26,25 +28,15 @@ describe('EntradaService', () => {
 
         test('deve listar todas as entradas', async () => {
             const entradas = [
-                {
-                    id_entrada: 1,
-                    quantidade: 10
-                },
-                {
-                    id_entrada: 2,
-                    quantidade: 20
-                }
+                { id_entrada: 1, quantidade: 10 },
+                { id_entrada: 2, quantidade: 20 }
             ];
 
-            EntradaRepository.listarTodos
-                .mockResolvedValue(entradas);
+            EntradaRepository.listarTodos.mockResolvedValue(entradas);
 
-            const resultado =
-                await EntradaService.listarEntradas();
+            const resultado = await EntradaService.listarEntradas();
 
-            expect(EntradaRepository.listarTodos)
-                .toHaveBeenCalled();
-
+            expect(EntradaRepository.listarTodos).toHaveBeenCalled();
             expect(resultado).toEqual({
                 sucesso: true,
                 dados: entradas,
@@ -52,18 +44,29 @@ describe('EntradaService', () => {
             });
         });
 
-        test('deve retornar lista vazia quando não houver entradas', async () => {
-            EntradaRepository.listarTodos
-                .mockResolvedValue([]);
+        test('deve retornar lista vazia', async () => {
+            EntradaRepository.listarTodos.mockResolvedValue([]);
 
-            const resultado =
-                await EntradaService.listarEntradas();
+            const resultado = await EntradaService.listarEntradas();
 
             expect(resultado).toEqual({
                 sucesso: true,
                 dados: [],
                 total: 0
             });
+        });
+
+        test('deve retornar metadados de paginação quando page/limit informado', async () => {
+            const entradas = [{ id_entrada: 1, quantidade: 10 }];
+            entradas.total = 15;
+            EntradaRepository.listarTodos.mockResolvedValue(entradas);
+
+            const resultado = await EntradaService.listarEntradas({ page: 2, limit: 5 });
+
+            expect(resultado.pagina).toBe(2);
+            expect(resultado.limite).toBe(5);
+            expect(resultado.total).toBe(15);
+            expect(resultado.total_paginas).toBe(3);
         });
     });
 
@@ -74,24 +77,13 @@ describe('EntradaService', () => {
     describe('buscarEntradaPorId', () => {
 
         test('deve buscar entrada por ID', async () => {
-            const entrada = {
-                id_entrada: 1,
-                quantidade: 10
-            };
+            const entrada = { id_entrada: 1, quantidade: 10 };
+            EntradaRepository.buscarPorId.mockResolvedValue(entrada);
 
-            EntradaRepository.buscarPorId
-                .mockResolvedValue(entrada);
+            const resultado = await EntradaService.buscarEntradaPorId(1);
 
-            const resultado =
-                await EntradaService.buscarEntradaPorId(1);
-
-            expect(EntradaRepository.buscarPorId)
-                .toHaveBeenCalledWith(1);
-
-            expect(resultado).toEqual({
-                sucesso: true,
-                dados: entrada
-            });
+            expect(EntradaRepository.buscarPorId).toHaveBeenCalledWith(1);
+            expect(resultado).toEqual({ sucesso: true, dados: entrada });
         });
 
         test('deve rejeitar ID inválido', async () => {
@@ -102,8 +94,7 @@ describe('EntradaService', () => {
                 mensagem: 'ID inválido'
             });
 
-            expect(EntradaRepository.buscarPorId)
-                .not.toHaveBeenCalled();
+            expect(EntradaRepository.buscarPorId).not.toHaveBeenCalled();
         });
 
         test('deve rejeitar quando ID não for informado', async () => {
@@ -116,15 +107,13 @@ describe('EntradaService', () => {
         });
 
         test('deve rejeitar entrada inexistente', async () => {
-            EntradaRepository.buscarPorId
-                .mockResolvedValue(null);
+            EntradaRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.buscarEntradaPorId(999)
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Movimentação de entrada não encontrada'
+                mensagem: 'Movimentação de entrada não encontrada'
             });
         });
     });
@@ -140,286 +129,182 @@ describe('EntradaService', () => {
             id_fornecedor: 2,
             id_produto: 3,
             data: '2026-09-28',
-            lote: 'LOTE001',
+            id_lote: 7,
             quantidade: 10,
             rastreamento: 'ABC123'
         };
 
-        test('deve criar entrada com sucesso', async () => {
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({
-                    id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({
-                    id_fornecedor: 2
-                });
-
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue({
-                    id_produto: 3
-                });
-
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValue({
-                    id_estoque: 5,
-                    id_produto: 3
-                });
-
-            EntradaRepository.criar
-                .mockResolvedValue(10);
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 10,
-                    ...dadosValidos
-                });
-
-            EstoqueRepository.alterarQuantidade
-                .mockResolvedValue(true);
-
-            const resultado =
-                await EntradaService.criarEntrada(dadosValidos);
-
-            expect(EntradaRepository.criar)
-                .toHaveBeenCalledWith({
-                    id_usuario: 1,
-                    id_fornecedor: 2,
-                    id_produto: 3,
-                    data: '2026-09-28',
-                    lote: 'LOTE001',
-                    quantidade: 10,
-                    rastreamento: 'ABC123'
-                });
-
-            expect(EstoqueRepository.alterarQuantidade)
-                .toHaveBeenCalledWith(5, 10);
-
-            expect(resultado.sucesso)
-                .toBe(true);
-
-            expect(resultado.mensagem)
-                .toBe(
-                    'Movimentação de entrada cadastrada com sucesso'
-                );
+        beforeEach(() => {
+            // Mocks padrão para fluxo feliz
+            UsuarioRepository.buscarPorId.mockResolvedValue({ id_usuario: 1 });
+            FornecedorRepository.buscarPorId.mockResolvedValue({ id_fornecedor: 2 });
+            ProdutoRepository.buscarPorId.mockResolvedValue({ id_produto: 3 });
+            LoteRepository.buscarPorId.mockResolvedValue({ id_lote: 7, id_produto: 3, dt_validade: '2099-12-31' });
+            EstoqueRepository.buscarPorLote.mockResolvedValue({ id_estoque: 5, qtd_atual: 50 });
+            EstoqueRepository.alterarQuantidade.mockResolvedValue(true);
+            EntradaRepository.criar.mockResolvedValue(10);
+            EntradaRepository.buscarPorId.mockResolvedValue({ id_entrada: 10, ...dadosValidos });
         });
 
-        test('deve aceitar rastreamento não informado', async () => {
+        test('deve criar entrada com sucesso', async () => {
+            const resultado = await EntradaService.criarEntrada(dadosValidos);
 
-            const dados = {
-                ...dadosValidos
-            };
+            expect(EntradaRepository.criar).toHaveBeenCalledWith({
+                id_usuario: 1,
+                id_fornecedor: 2,
+                id_produto: 3,
+                data: '2026-09-28',
+                id_lote: 7,
+                quantidade: 10,
+                rastreamento: 'ABC123'
+            });
 
+            expect(EstoqueRepository.alterarQuantidade).toHaveBeenCalledWith(5, 10);
+            expect(resultado.sucesso).toBe(true);
+            expect(resultado.mensagem).toBe('Movimentação de entrada cadastrada com sucesso');
+        });
+
+        test('deve aceitar rastreamento não informado (null)', async () => {
+            const dados = { ...dadosValidos };
             delete dados.rastreamento;
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({ id_usuario: 1 });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({ id_fornecedor: 2 });
-
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue({ id_produto: 3 });
-
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValue({ id_estoque: 5 });
-
-            EntradaRepository.criar
-                .mockResolvedValue(10);
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 10
-                });
 
             await EntradaService.criarEntrada(dados);
 
-            expect(EntradaRepository.criar)
-                .toHaveBeenCalledWith(
-                    expect.objectContaining({
-                        rastreamento: null
-                    })
-                );
+            expect(EntradaRepository.criar).toHaveBeenCalledWith(
+                expect.objectContaining({ rastreamento: null })
+            );
         });
 
         test('deve rejeitar campos obrigatórios faltando', async () => {
-
             await expect(
-                EntradaService.criarEntrada({
-                    id_usuario: 1
-                })
+                EntradaService.criarEntrada({ id_usuario: 1 })
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'Campos obrigatórios faltando: id_usuario, id_fornecedor, id_produto, data, lote, quantidade'
+                mensagem: 'Campos obrigatórios faltando: id_fornecedor, id_produto, data, id_lote, quantidade'
             });
 
-            expect(UsuarioRepository.buscarPorId)
-                .not.toHaveBeenCalled();
+            expect(UsuarioRepository.buscarPorId).not.toHaveBeenCalled();
         });
 
-        test('deve rejeitar quantidade zero', async () => {
-
-            const dados = {
-                ...dadosValidos,
-                quantidade: 0
-            };
+        test('deve rejeitar quando id_usuario não for informado', async () => {
+            const dados = { ...dadosValidos };
+            delete dados.id_usuario;
 
             await expect(
                 EntradaService.criarEntrada(dados)
+            ).rejects.toMatchObject({ status: 400 });
+        });
+
+        test('deve rejeitar quantidade zero', async () => {
+            await expect(
+                EntradaService.criarEntrada({ ...dadosValidos, quantidade: 0 })
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'A quantidade deve ser um número inteiro maior que zero'
+                mensagem: 'A quantidade deve ser um número inteiro maior que zero'
             });
         });
 
         test('deve rejeitar quantidade negativa', async () => {
-
-            const dados = {
-                ...dadosValidos,
-                quantidade: -5
-            };
-
             await expect(
-                EntradaService.criarEntrada(dados)
+                EntradaService.criarEntrada({ ...dadosValidos, quantidade: -5 })
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'A quantidade deve ser um número inteiro maior que zero'
+                mensagem: 'A quantidade deve ser um número inteiro maior que zero'
             });
         });
 
         test('deve rejeitar quantidade decimal', async () => {
-
-            const dados = {
-                ...dadosValidos,
-                quantidade: 10.5
-            };
-
             await expect(
-                EntradaService.criarEntrada(dados)
+                EntradaService.criarEntrada({ ...dadosValidos, quantidade: 10.5 })
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'A quantidade deve ser um número inteiro maior que zero'
+                mensagem: 'A quantidade deve ser um número inteiro maior que zero'
             });
         });
 
         test('deve rejeitar quantidade que não seja número', async () => {
-
-            const dados = {
-                ...dadosValidos,
-                quantidade: '10'
-            };
-
             await expect(
-                EntradaService.criarEntrada(dados)
+                EntradaService.criarEntrada({ ...dadosValidos, quantidade: '10' })
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'A quantidade deve ser um número inteiro maior que zero'
+                mensagem: 'A quantidade deve ser um número inteiro maior que zero'
             });
         });
 
         test('deve rejeitar usuário inexistente', async () => {
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue(null);
+            UsuarioRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.criarEntrada(dadosValidos)
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Usuário informado não existe'
+                mensagem: 'Usuário informado não existe'
             });
 
-            expect(FornecedorRepository.buscarPorId)
-                .not.toHaveBeenCalled();
+            expect(FornecedorRepository.buscarPorId).not.toHaveBeenCalled();
         });
 
         test('deve rejeitar fornecedor inexistente', async () => {
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({
-                    id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue(null);
+            FornecedorRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.criarEntrada(dadosValidos)
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Fornecedor informado não existe'
+                mensagem: 'Fornecedor informado não existe'
             });
 
-            expect(ProdutoRepository.buscarPorId)
-                .not.toHaveBeenCalled();
+            expect(ProdutoRepository.buscarPorId).not.toHaveBeenCalled();
         });
 
         test('deve rejeitar produto inexistente', async () => {
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({
-                    id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({
-                    id_fornecedor: 2
-                });
-
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue(null);
+            ProdutoRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.criarEntrada(dadosValidos)
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Produto informado não existe'
+                mensagem: 'Produto informado não existe'
             });
 
-            expect(EstoqueRepository.buscarPorProdutoELote)
-                .not.toHaveBeenCalled();
+            expect(LoteRepository.buscarPorId).not.toHaveBeenCalled();
         });
 
-        test('deve rejeitar quando estoque não existir', async () => {
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({
-                    id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({
-                    id_fornecedor: 2
-                });
-
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue({
-                    id_produto: 3
-                });
-
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValue(null);
+        test('deve rejeitar lote inexistente', async () => {
+            LoteRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.criarEntrada(dadosValidos)
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Estoque não encontrado para o produto e lote informados'
+                mensagem: 'Lote informado não existe'
             });
 
-            expect(EntradaRepository.criar)
-                .not.toHaveBeenCalled();
+            expect(EstoqueRepository.buscarPorLote).not.toHaveBeenCalled();
+        });
+
+        test('deve rejeitar lote que não pertence ao produto', async () => {
+            LoteRepository.buscarPorId.mockResolvedValue({ id_lote: 7, id_produto: 99 });
+
+            await expect(
+                EntradaService.criarEntrada(dadosValidos)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem: 'O lote informado não pertence ao produto informado'
+            });
+        });
+
+        test('deve rejeitar quando estoque do lote não existir', async () => {
+            EstoqueRepository.buscarPorLote.mockResolvedValue(null);
+
+            await expect(
+                EntradaService.criarEntrada(dadosValidos)
+            ).rejects.toEqual({
+                status: 404,
+                mensagem: 'Estoque não encontrado para o lote informado'
+            });
+
+            expect(EntradaRepository.criar).not.toHaveBeenCalled();
         });
     });
 
@@ -429,8 +314,16 @@ describe('EntradaService', () => {
 
     describe('atualizarEntrada', () => {
 
-        test('deve rejeitar ID inválido', async () => {
+        const entradaExistente = {
+            id_entrada: 1,
+            id_usuario: 1,
+            id_fornecedor: 2,
+            id_produto: 3,
+            id_lote: 7,
+            quantidade: 10
+        };
 
+        test('deve rejeitar ID inválido', async () => {
             await expect(
                 EntradaService.atualizarEntrada('abc', {})
             ).rejects.toEqual({
@@ -440,327 +333,160 @@ describe('EntradaService', () => {
         });
 
         test('deve rejeitar entrada inexistente', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue(null);
+            EntradaRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.atualizarEntrada(999, {})
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Movimentação de entrada não encontrada'
+                mensagem: 'Movimentação de entrada não encontrada'
             });
         });
 
         test('deve rejeitar quando nenhum campo for informado', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1,
-                    id_produto: 3,
-                    lote: 'LOTE001',
-                    quantidade: 10
-                });
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
 
             await expect(
                 EntradaService.atualizarEntrada(1, {})
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'Nenhum campo para atualizar'
+                mensagem: 'Nenhum campo para atualizar'
             });
         });
 
-        test('deve atualizar dados simples da entrada', async () => {
-
-            const entrada = {
-                id_entrada: 1,
-                id_usuario: 1,
-                id_fornecedor: 2,
-                id_produto: 3,
-                lote: 'LOTE001',
-                quantidade: 10
-            };
-
+        test('deve atualizar dados simples da entrada (sem alterar estoque)', async () => {
             EntradaRepository.buscarPorId
-                .mockResolvedValue(entrada);
+                .mockResolvedValueOnce(entradaExistente)
+                .mockResolvedValueOnce({ ...entradaExistente, data: '2026-09-29' });
 
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({
-                    id_usuario: 1
-                });
+            LoteRepository.buscarPorId.mockResolvedValue({ id_lote: 7, id_produto: 3 });
+            EstoqueRepository.buscarPorLote.mockResolvedValue({ id_estoque: 5, qtd_atual: 50 });
+            EntradaRepository.atualizar.mockResolvedValue(true);
 
-            EntradaRepository.atualizar
-                .mockResolvedValue(true);
+            const resultado = await EntradaService.atualizarEntrada(1, { data: '2026-09-29' });
 
-            EntradaRepository.buscarPorId
-                .mockResolvedValueOnce(entrada)
-                .mockResolvedValueOnce({
-                    ...entrada,
-                    data: '2026-09-29'
-                });
-
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValue({
-                    id_estoque: 5
-                });
-
-            const resultado =
-                await EntradaService.atualizarEntrada(1, {
-                    data: '2026-09-29'
-                });
-
-            expect(EntradaRepository.atualizar)
-                .toHaveBeenCalledWith(
-                    1,
-                    {
-                        data: '2026-09-29'
-                    }
-                );
-
-            expect(resultado.sucesso)
-                .toBe(true);
+            expect(EntradaRepository.atualizar).toHaveBeenCalledWith(1, { data: '2026-09-29' });
+            expect(EstoqueRepository.alterarQuantidade).not.toHaveBeenCalled();
+            expect(resultado.sucesso).toBe(true);
         });
 
-        test('deve rejeitar quantidade inválida na atualização', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1,
-                    id_produto: 3,
-                    lote: 'LOTE001',
-                    quantidade: 10
-                });
+        test('deve rejeitar tentativa de alterar o usuário', async () => {
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
 
             await expect(
-                EntradaService.atualizarEntrada(1, {
-                    quantidade: 0
-                })
+                EntradaService.atualizarEntrada(1, { id_usuario: 999 })
             ).rejects.toEqual({
                 status: 400,
-                mensagem:
-                    'A quantidade deve ser um número inteiro maior que zero'
-            });
-        });
-
-        test('deve rejeitar usuário inexistente na atualização', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1
-                });
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue(null);
-
-            await expect(
-                EntradaService.atualizarEntrada(1, {
-                    id_usuario: 999
-                })
-            ).rejects.toEqual({
-                status: 404,
-                mensagem:
-                    'Usuário informado não existe'
+                mensagem: 'Não é permitido alterar o usuário de uma movimentação'
             });
         });
 
         test('deve rejeitar fornecedor inexistente na atualização', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue(null);
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
+            FornecedorRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
-                EntradaService.atualizarEntrada(1, {
-                    id_fornecedor: 999
-                })
+                EntradaService.atualizarEntrada(1, { id_fornecedor: 999 })
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Fornecedor informado não existe'
+                mensagem: 'Fornecedor informado não existe'
             });
         });
 
         test('deve rejeitar produto inexistente na atualização', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1
-                });
-
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue(null);
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
+            ProdutoRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
-                EntradaService.atualizarEntrada(1, {
-                    id_produto: 999
-                })
+                EntradaService.atualizarEntrada(1, { id_produto: 999 })
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Produto informado não existe'
+                mensagem: 'Produto informado não existe'
             });
         });
 
-        test('deve atualizar quantidade e ajustar estoque', async () => {
+        test('deve rejeitar quantidade inválida na atualização', async () => {
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
 
-            const entrada = {
-                id_entrada: 1,
-                id_produto: 3,
-                lote: 'LOTE001',
-                quantidade: 10
-            };
+            await expect(
+                EntradaService.atualizarEntrada(1, { quantidade: 0 })
+            ).rejects.toEqual({
+                status: 400,
+                mensagem: 'A quantidade deve ser um número inteiro maior que zero'
+            });
+        });
 
+        test('deve atualizar quantidade e ajustar estoque (mesmo lote)', async () => {
             EntradaRepository.buscarPorId
-                .mockResolvedValueOnce(entrada)
-                .mockResolvedValueOnce({
-                    ...entrada,
-                    quantidade: 15
-                });
+                .mockResolvedValueOnce(entradaExistente)
+                .mockResolvedValueOnce({ ...entradaExistente, quantidade: 15 });
 
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValue({
-                    id_estoque: 5
-                });
+            LoteRepository.buscarPorId.mockResolvedValue({ id_lote: 7, id_produto: 3 });
+            EstoqueRepository.buscarPorLote.mockResolvedValue({ id_estoque: 5, qtd_atual: 50 });
+            EstoqueRepository.alterarQuantidade.mockResolvedValue(true);
+            EntradaRepository.atualizar.mockResolvedValue(true);
 
-            EstoqueRepository.alterarQuantidade
-                .mockResolvedValue(true);
+            const resultado = await EntradaService.atualizarEntrada(1, { quantidade: 15 });
 
-            EntradaRepository.atualizar
-                .mockResolvedValue(true);
-
-            const resultado =
-                await EntradaService.atualizarEntrada(1, {
-                    quantidade: 15
-                });
-
-            expect(EstoqueRepository.alterarQuantidade)
-                .toHaveBeenCalledWith(5, 5);
-
-            expect(EntradaRepository.atualizar)
-                .toHaveBeenCalledWith(
-                    1,
-                    {
-                        quantidade: 15
-                    }
-                );
-
-            expect(resultado.sucesso)
-                .toBe(true);
+            // diferenca = 15 - 10 = +5
+            expect(EstoqueRepository.alterarQuantidade).toHaveBeenCalledWith(5, 5);
+            expect(EntradaRepository.atualizar).toHaveBeenCalledWith(1, { quantidade: 15 });
+            expect(resultado.sucesso).toBe(true);
         });
 
         test('deve rejeitar estoque antigo inexistente', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1,
-                    id_produto: 3,
-                    lote: 'LOTE001',
-                    quantidade: 10
-                });
-
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValue(null);
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
+            LoteRepository.buscarPorId.mockResolvedValue({ id_lote: 7, id_produto: 3 });
+            EstoqueRepository.buscarPorLote.mockResolvedValue(null);
 
             await expect(
-                EntradaService.atualizarEntrada(1, {
-                    quantidade: 15
-                })
+                EntradaService.atualizarEntrada(1, { quantidade: 15 })
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Estoque antigo não encontrado'
+                mensagem: 'Estoque antigo não encontrado'
             });
         });
 
-        test('deve mover quantidade entre estoques quando produto ou lote mudar', async () => {
-
-            const entrada = {
-                id_entrada: 1,
-                id_produto: 3,
-                lote: 'LOTE001',
-                quantidade: 10
-            };
-
+        test('deve mover quantidade entre estoques quando lote mudar', async () => {
             EntradaRepository.buscarPorId
-                .mockResolvedValueOnce(entrada)
-                .mockResolvedValueOnce({
-                    ...entrada,
-                    id_produto: 4,
-                    lote: 'LOTE002'
-                });
+                .mockResolvedValueOnce(entradaExistente)
+                .mockResolvedValueOnce({ ...entradaExistente, id_lote: 8 });
 
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue({
-                    id_produto: 4
-                });
+            LoteRepository.buscarPorId
+                .mockResolvedValue({ id_lote: 8, id_produto: 3 });
 
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValueOnce({
-                    id_estoque: 5
-                })
-                .mockResolvedValueOnce({
-                    id_estoque: 6
-                });
+            EstoqueRepository.buscarPorLote
+                .mockResolvedValueOnce({ id_estoque: 5, qtd_atual: 50 })   // estoque antigo
+                .mockResolvedValueOnce({ id_estoque: 6, qtd_atual: 20 });  // estoque novo
 
-            EstoqueRepository.alterarQuantidade
-                .mockResolvedValue(true);
+            EstoqueRepository.alterarQuantidade.mockResolvedValue(true);
+            EntradaRepository.atualizar.mockResolvedValue(true);
 
-            EntradaRepository.atualizar
-                .mockResolvedValue(true);
+            await EntradaService.atualizarEntrada(1, { id_lote: 8 });
 
-            await EntradaService.atualizarEntrada(1, {
-                id_produto: 4,
-                lote: 'LOTE002'
-            });
-
-            expect(EstoqueRepository.alterarQuantidade)
-                .toHaveBeenNthCalledWith(1, 5, -10);
-
-            expect(EstoqueRepository.alterarQuantidade)
-                .toHaveBeenNthCalledWith(2, 6, 10);
+            // remove do estoque antigo
+            expect(EstoqueRepository.alterarQuantidade).toHaveBeenNthCalledWith(1, 5, -10);
+            // adiciona no estoque novo
+            expect(EstoqueRepository.alterarQuantidade).toHaveBeenNthCalledWith(2, 6, 10);
         });
 
-        test('deve rejeitar estoque novo inexistente ao trocar produto ou lote', async () => {
+        test('deve rejeitar estoque novo inexistente ao trocar lote', async () => {
+            EntradaRepository.buscarPorId.mockResolvedValue(entradaExistente);
 
-            const entrada = {
-                id_entrada: 1,
-                id_produto: 3,
-                lote: 'LOTE001',
-                quantidade: 10
-            };
+            LoteRepository.buscarPorId.mockResolvedValue({ id_lote: 8, id_produto: 3 });
 
-            EntradaRepository.buscarPorId
-                .mockResolvedValueOnce(entrada);
-
-            ProdutoRepository.buscarPorId
-                .mockResolvedValue({
-                    id_produto: 4
-                });
-
-            EstoqueRepository.buscarPorProdutoELote
-                .mockResolvedValueOnce({
-                    id_estoque: 5
-                })
-                .mockResolvedValueOnce(null);
+            EstoqueRepository.buscarPorLote
+                .mockResolvedValueOnce({ id_estoque: 5, qtd_atual: 50 })  // estoque antigo existe
+                .mockResolvedValueOnce(null);                               // estoque novo não existe
 
             await expect(
-                EntradaService.atualizarEntrada(1, {
-                    id_produto: 4
-                })
+                EntradaService.atualizarEntrada(1, { id_lote: 8 })
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Estoque novo não encontrado para o produto e lote informados'
+                mensagem: 'Estoque novo não encontrado para o lote informado'
             });
 
-            expect(EstoqueRepository.alterarQuantidade)
-                .not.toHaveBeenCalled();
+            expect(EstoqueRepository.alterarQuantidade).not.toHaveBeenCalled();
         });
     });
 
@@ -771,33 +497,20 @@ describe('EntradaService', () => {
     describe('removerEntrada', () => {
 
         test('deve remover entrada com sucesso', async () => {
+            EntradaRepository.buscarPorId.mockResolvedValue({ id_entrada: 1 });
+            EntradaRepository.remover.mockResolvedValue(true);
 
-            EntradaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_entrada: 1
-                });
+            const resultado = await EntradaService.removerEntrada(1);
 
-            EntradaRepository.remover
-                .mockResolvedValue(true);
-
-            const resultado =
-                await EntradaService.removerEntrada(1);
-
-            expect(EntradaRepository.buscarPorId)
-                .toHaveBeenCalledWith(1);
-
-            expect(EntradaRepository.remover)
-                .toHaveBeenCalledWith(1);
-
+            expect(EntradaRepository.buscarPorId).toHaveBeenCalledWith(1);
+            expect(EntradaRepository.remover).toHaveBeenCalledWith(1);
             expect(resultado).toEqual({
                 sucesso: true,
-                mensagem:
-                    'Movimentação de entrada removida com sucesso'
+                mensagem: 'Movimentação de entrada removida com sucesso'
             });
         });
 
         test('deve rejeitar ID inválido', async () => {
-
             await expect(
                 EntradaService.removerEntrada('abc')
             ).rejects.toEqual({
@@ -805,25 +518,20 @@ describe('EntradaService', () => {
                 mensagem: 'ID inválido'
             });
 
-            expect(EntradaRepository.buscarPorId)
-                .not.toHaveBeenCalled();
+            expect(EntradaRepository.buscarPorId).not.toHaveBeenCalled();
         });
 
         test('deve rejeitar entrada inexistente', async () => {
-
-            EntradaRepository.buscarPorId
-                .mockResolvedValue(null);
+            EntradaRepository.buscarPorId.mockResolvedValue(null);
 
             await expect(
                 EntradaService.removerEntrada(999)
             ).rejects.toEqual({
                 status: 404,
-                mensagem:
-                    'Movimentação de entrada não encontrada'
+                mensagem: 'Movimentação de entrada não encontrada'
             });
 
-            expect(EntradaRepository.remover)
-                .not.toHaveBeenCalled();
+            expect(EntradaRepository.remover).not.toHaveBeenCalled();
         });
     });
 });

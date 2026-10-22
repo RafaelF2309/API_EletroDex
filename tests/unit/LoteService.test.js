@@ -363,6 +363,126 @@ describe('LoteService', () => {
             expect(LoteRepository.criarComEstoque)
                 .not.toHaveBeenCalled();
         });
+
+        test('deve rejeitar quando dt_validade for anterior à dt_fabricacao', async () => {
+            const dados = {
+                ...dadosValidos,
+                dt_fabricacao: '2026-06-01',
+                dt_validade: '2026-01-01'
+            };
+
+            await expect(
+                LoteService.criarLote(dados)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem:
+                    'A data de validade deve ser posterior à data de fabricação'
+            });
+
+            expect(LoteRepository.criarComEstoque)
+                .not.toHaveBeenCalled();
+        });
+
+        test('deve rejeitar quando dt_validade for igual à dt_fabricacao', async () => {
+            const dados = {
+                ...dadosValidos,
+                dt_fabricacao: '2026-06-01',
+                dt_validade: '2026-06-01'
+            };
+
+            await expect(
+                LoteService.criarLote(dados)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem:
+                    'A data de validade deve ser posterior à data de fabricação'
+            });
+
+            expect(LoteRepository.criarComEstoque)
+                .not.toHaveBeenCalled();
+        });
+
+        test('deve rejeitar formato de data inválido', async () => {
+            const dados = {
+                ...dadosValidos,
+                dt_fabricacao: 'data-invalida'
+            };
+
+            await expect(
+                LoteService.criarLote(dados)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem: 'Formato de data inválido'
+            });
+        });
+    });
+
+    // ==========================================
+    // listarLotesVencendo
+    // ==========================================
+
+    describe('listarLotesVencendo', () => {
+
+        test('deve listar lotes vencendo com sucesso usando default de 30 dias', async () => {
+            const lotesMock = [
+                {
+                    id_lote: 1,
+                    numero_lote: 'L001',
+                    dt_validade: '2026-10-25',
+                    quantidade_inicial: '100',
+                    qtd_atual: '50',
+                    dias_para_vencer: '6',
+                    vencido: 0
+                }
+            ];
+
+            LoteRepository.listarVencendo.mockResolvedValue(lotesMock);
+
+            const resultado = await LoteService.listarLotesVencendo();
+
+            expect(LoteRepository.listarVencendo)
+                .toHaveBeenCalledWith(30);
+
+            expect(resultado).toEqual({
+                sucesso: true,
+                dados: [
+                    {
+                        id_lote: 1,
+                        numero_lote: 'L001',
+                        dt_validade: '2026-10-25',
+                        quantidade_inicial: 100,
+                        qtd_atual: 50,
+                        dias_para_vencer: 6,
+                        vencido: false
+                    }
+                ],
+                total: 1
+            });
+        });
+
+        test('deve listar lotes vencendo com parâmetro dias customizado', async () => {
+            LoteRepository.listarVencendo.mockResolvedValue([]);
+
+            const resultado = await LoteService.listarLotesVencendo(15);
+
+            expect(LoteRepository.listarVencendo)
+                .toHaveBeenCalledWith(15);
+
+            expect(resultado).toEqual({
+                sucesso: true,
+                dados: [],
+                total: 0
+            });
+        });
+
+        test('deve rejeitar parâmetro dias negativo', async () => {
+            await expect(
+                LoteService.listarLotesVencendo(-5)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem: 'O parâmetro dias deve ser um número maior ou igual a zero'
+            });
+        });
     });
 
     // ==========================================

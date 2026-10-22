@@ -3,10 +3,13 @@ const router = express.Router();
 const LoteController = require('../controllers/LoteController');
 const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
 
-// GET /lote
+// GET /lotes
 router.get('/', LoteController.listar);
 
-// GET /lote/:id
+// GET /lotes/vencendo?dias=N
+router.get('/vencendo', LoteController.listarVencendo);
+
+// GET /lotes/:id
 router.get('/:id', LoteController.buscarPorId);
 
 // POST /lote

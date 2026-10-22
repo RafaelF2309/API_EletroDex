@@ -6,6 +6,12 @@ const { permitirNivel } = require('../middlewares/autorizacaoMiddleware');
 // GET /estoque
 router.get('/', EstoqueController.listar);
 
+// GET /estoque/ajustes
+router.get('/ajustes', permitirNivel(2), EstoqueController.listarAjustes);
+
+// GET /estoque/:id/ajustes
+router.get('/:id/ajustes', permitirNivel(2), EstoqueController.listarAjustesPorEstoque);
+
 // GET /estoque/:id
 router.get('/:id', EstoqueController.buscarPorId);
 

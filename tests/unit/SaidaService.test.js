@@ -1,14 +1,16 @@
 jest.mock('../../src/repositories/SaidaRepository');
 jest.mock('../../src/repositories/UsuarioRepository');
-jest.mock('../../src/repositories/FornecedorRepository');
 jest.mock('../../src/repositories/ProdutoRepository');
+jest.mock('../../src/repositories/EstoqueRepository');
+jest.mock('../../src/repositories/LoteRepository');
 
 const SaidaService = require('../../src/services/SaidaService');
 
 const SaidaRepository = require('../../src/repositories/SaidaRepository');
 const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
-const FornecedorRepository = require('../../src/repositories/FornecedorRepository');
 const ProdutoRepository = require('../../src/repositories/ProdutoRepository');
+const EstoqueRepository = require('../../src/repositories/EstoqueRepository');
+const LoteRepository = require('../../src/repositories/LoteRepository');
 
 describe('SaidaService', () => {
 
@@ -61,6 +63,39 @@ describe('SaidaService', () => {
                 sucesso: true,
                 dados: [],
                 total: 0
+            });
+        });
+
+        test('deve listar saídas com filtros e paginação', async () => {
+            const saidas = [
+                {
+                    id_saida: 1,
+                    id_produto: 3,
+                    nome_produto: 'Mouse',
+                    numero_lote: 'L002',
+                    nome_usuario: 'Vendedor',
+                    quantidade: 5
+                }
+            ];
+            saidas.total = 10;
+
+            SaidaRepository.listarTodos
+                .mockResolvedValue(saidas);
+
+            const filtros = { page: 2, limit: 5, id_produto: 3 };
+            const resultado =
+                await SaidaService.listarSaidas(filtros);
+
+            expect(SaidaRepository.listarTodos)
+                .toHaveBeenCalledWith(filtros);
+
+            expect(resultado).toEqual({
+                sucesso: true,
+                dados: saidas,
+                total: 10,
+                pagina: 2,
+                limite: 5,
+                total_paginas: 2
             });
         });
     });
@@ -138,11 +173,11 @@ describe('SaidaService', () => {
 
         const dadosValidos = {
             id_usuario: 1,
-            id_fornecedor: 2,
             id_produto: 3,
             data: '2026-09-28',
-            lote: 'LOTE001',
+            id_lote: 1,
             quantidade: 10,
+            motivo: 'venda',
             rastreamento: 'ABC123'
         };
 
@@ -153,15 +188,25 @@ describe('SaidaService', () => {
                     id_usuario: 1
                 });
 
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({
-                    id_fornecedor: 2
-                });
-
             ProdutoRepository.buscarPorId
                 .mockResolvedValue({
                     id_produto: 3
                 });
+
+            LoteRepository.buscarPorId
+                .mockResolvedValue({
+                    id_lote: 1,
+                    id_produto: 3
+                });
+
+            EstoqueRepository.buscarPorLote
+                .mockResolvedValue({
+                    id_estoque: 1,
+                    qtd_atual: 20
+                });
+
+            EstoqueRepository.alterarQuantidade
+                .mockResolvedValue(true);
 
             SaidaRepository.criar
                 .mockResolvedValue(10);
@@ -178,11 +223,11 @@ describe('SaidaService', () => {
             expect(SaidaRepository.criar)
                 .toHaveBeenCalledWith({
                     id_usuario: 1,
-                    id_fornecedor: 2,
                     id_produto: 3,
                     data: '2026-09-28',
-                    lote: 'LOTE001',
+                    id_lote: 1,
                     quantidade: 10,
+                    motivo: 'venda',
                     rastreamento: 'ABC123'
                 });
 
@@ -197,22 +242,19 @@ describe('SaidaService', () => {
             });
         });
 
-        test('deve aceitar saída sem rastreamento', async () => {
+        test('deve aceitar saída sem rastreamento nem motivo', async () => {
 
             const dados = {
-                ...dadosValidos
+                id_usuario: 1,
+                id_produto: 3,
+                data: '2026-09-28',
+                id_lote: 1,
+                quantidade: 10
             };
-
-            delete dados.rastreamento;
 
             UsuarioRepository.buscarPorId
                 .mockResolvedValue({
                     id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({
-                    id_fornecedor: 2
                 });
 
             ProdutoRepository.buscarPorId
@@ -220,12 +262,30 @@ describe('SaidaService', () => {
                     id_produto: 3
                 });
 
+            LoteRepository.buscarPorId
+                .mockResolvedValue({
+                    id_lote: 1,
+                    id_produto: 3
+                });
+
+            EstoqueRepository.buscarPorLote
+                .mockResolvedValue({
+                    id_estoque: 1,
+                    qtd_atual: 20
+                });
+
+            EstoqueRepository.alterarQuantidade
+                .mockResolvedValue(true);
+
             SaidaRepository.criar
                 .mockResolvedValue(10);
 
             SaidaRepository.buscarPorId
                 .mockResolvedValue({
-                    id_saida: 10
+                    id_saida: 10,
+                    ...dados,
+                    motivo: null,
+                    rastreamento: null
                 });
 
             await SaidaService.criarSaida(dados);
@@ -233,6 +293,7 @@ describe('SaidaService', () => {
             expect(SaidaRepository.criar)
                 .toHaveBeenCalledWith(
                     expect.objectContaining({
+                        motivo: null,
                         rastreamento: null
                     })
                 );
@@ -247,7 +308,7 @@ describe('SaidaService', () => {
             ).rejects.toEqual({
                 status: 400,
                 mensagem:
-                    'Campos obrigatórios faltando: id_usuario, id_fornecedor, id_produto, data, lote, quantidade'
+                    'Campos obrigatórios faltando: id_produto, data, id_lote, quantidade'
             });
 
             expect(UsuarioRepository.buscarPorId)
@@ -298,31 +359,6 @@ describe('SaidaService', () => {
                 mensagem:
                     'Usuário informado não existe'
             });
-
-            expect(FornecedorRepository.buscarPorId)
-                .not.toHaveBeenCalled();
-        });
-
-        test('deve rejeitar fornecedor inexistente', async () => {
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue({
-                    id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue(null);
-
-            await expect(
-                SaidaService.criarSaida(dadosValidos)
-            ).rejects.toEqual({
-                status: 404,
-                mensagem:
-                    'Fornecedor informado não existe'
-            });
-
-            expect(ProdutoRepository.buscarPorId)
-                .not.toHaveBeenCalled();
         });
 
         test('deve rejeitar produto inexistente', async () => {
@@ -330,11 +366,6 @@ describe('SaidaService', () => {
             UsuarioRepository.buscarPorId
                 .mockResolvedValue({
                     id_usuario: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue({
-                    id_fornecedor: 2
                 });
 
             ProdutoRepository.buscarPorId
@@ -346,6 +377,120 @@ describe('SaidaService', () => {
                 status: 404,
                 mensagem:
                     'Produto informado não existe'
+            });
+
+            expect(SaidaRepository.criar)
+                .not.toHaveBeenCalled();
+        });
+
+        test('deve rejeitar lote inexistente', async () => {
+
+            UsuarioRepository.buscarPorId
+                .mockResolvedValue({
+                    id_usuario: 1
+                });
+
+            ProdutoRepository.buscarPorId
+                .mockResolvedValue({
+                    id_produto: 3
+                });
+
+            LoteRepository.buscarPorId
+                .mockResolvedValue(null);
+
+            await expect(
+                SaidaService.criarSaida(dadosValidos)
+            ).rejects.toEqual({
+                status: 404,
+                mensagem:
+                    'Lote informado não existe'
+            });
+        });
+
+        test('deve rejeitar lote que não pertence ao produto', async () => {
+
+            UsuarioRepository.buscarPorId
+                .mockResolvedValue({
+                    id_usuario: 1
+                });
+
+            ProdutoRepository.buscarPorId
+                .mockResolvedValue({
+                    id_produto: 3
+                });
+
+            LoteRepository.buscarPorId
+                .mockResolvedValue({
+                    id_lote: 1,
+                    id_produto: 99
+                });
+
+            await expect(
+                SaidaService.criarSaida(dadosValidos)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem:
+                    'O lote informado não pertence ao produto informado'
+            });
+        });
+
+        test('deve rejeitar estoque insuficiente', async () => {
+
+            UsuarioRepository.buscarPorId
+                .mockResolvedValue({
+                    id_usuario: 1
+                });
+
+            ProdutoRepository.buscarPorId
+                .mockResolvedValue({
+                    id_produto: 3
+                });
+
+            LoteRepository.buscarPorId
+                .mockResolvedValue({
+                    id_lote: 1,
+                    id_produto: 3
+                });
+
+            EstoqueRepository.buscarPorLote
+                .mockResolvedValue({
+                    id_estoque: 1,
+                    qtd_atual: 5
+                });
+
+            await expect(
+                SaidaService.criarSaida(dadosValidos)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem:
+                    'Estoque insuficiente. Disponível: 5, solicitado: 10'
+            });
+        });
+
+        test('deve rejeitar saída quando lote estiver vencido', async () => {
+
+            UsuarioRepository.buscarPorId
+                .mockResolvedValue({
+                    id_usuario: 1
+                });
+
+            ProdutoRepository.buscarPorId
+                .mockResolvedValue({
+                    id_produto: 3
+                });
+
+            LoteRepository.buscarPorId
+                .mockResolvedValue({
+                    id_lote: 1,
+                    id_produto: 3,
+                    dt_validade: '2020-01-01'
+                });
+
+            await expect(
+                SaidaService.criarSaida(dadosValidos)
+            ).rejects.toEqual({
+                status: 400,
+                mensagem: 'Não é permitido registrar saída de lote vencido'
             });
 
             expect(SaidaRepository.criar)
@@ -402,21 +547,22 @@ describe('SaidaService', () => {
                 .not.toHaveBeenCalled();
         });
 
-        test('deve atualizar dados simples', async () => {
+        test('deve atualizar dados simples (motivo e data)', async () => {
 
             const saida = {
                 id_saida: 1,
                 id_usuario: 1,
-                id_fornecedor: 2,
                 id_produto: 3,
-                lote: 'LOTE001',
-                quantidade: 10
+                id_lote: 1,
+                quantidade: 10,
+                motivo: 'venda'
             };
 
             SaidaRepository.buscarPorId
                 .mockResolvedValueOnce(saida)
                 .mockResolvedValueOnce({
                     ...saida,
+                    motivo: 'perda',
                     data: '2026-09-29'
                 });
 
@@ -425,6 +571,7 @@ describe('SaidaService', () => {
 
             const resultado =
                 await SaidaService.atualizarSaida(1, {
+                    motivo: 'perda',
                     data: '2026-09-29'
                 });
 
@@ -432,6 +579,7 @@ describe('SaidaService', () => {
                 .toHaveBeenCalledWith(
                     1,
                     {
+                        motivo: 'perda',
                         data: '2026-09-29'
                     }
                 );
@@ -440,45 +588,21 @@ describe('SaidaService', () => {
                 .toBe(true);
         });
 
-        test('deve rejeitar usuário inexistente', async () => {
+        test('deve rejeitar alteração de usuário', async () => {
 
             SaidaRepository.buscarPorId
                 .mockResolvedValue({
                     id_saida: 1
                 });
-
-            UsuarioRepository.buscarPorId
-                .mockResolvedValue(null);
 
             await expect(
                 SaidaService.atualizarSaida(1, {
                     id_usuario: 999
                 })
             ).rejects.toEqual({
-                status: 404,
+                status: 400,
                 mensagem:
-                    'Usuário informado não existe'
-            });
-        });
-
-        test('deve rejeitar fornecedor inexistente', async () => {
-
-            SaidaRepository.buscarPorId
-                .mockResolvedValue({
-                    id_saida: 1
-                });
-
-            FornecedorRepository.buscarPorId
-                .mockResolvedValue(null);
-
-            await expect(
-                SaidaService.atualizarSaida(1, {
-                    id_fornecedor: 999
-                })
-            ).rejects.toEqual({
-                status: 404,
-                mensagem:
-                    'Fornecedor informado não existe'
+                    'Não é permitido alterar o usuário de uma movimentação'
             });
         });
 
@@ -521,10 +645,11 @@ describe('SaidaService', () => {
             });
         });
 
-        test('deve atualizar quantidade', async () => {
+        test('deve atualizar quantidade e ajustar estoque', async () => {
 
             const saida = {
                 id_saida: 1,
+                id_lote: 1,
                 quantidade: 10
             };
 
@@ -534,6 +659,15 @@ describe('SaidaService', () => {
                     ...saida,
                     quantidade: 20
                 });
+
+            EstoqueRepository.buscarPorLote
+                .mockResolvedValue({
+                    id_estoque: 1,
+                    qtd_atual: 50
+                });
+
+            EstoqueRepository.alterarQuantidade
+                .mockResolvedValue(true);
 
             SaidaRepository.atualizar
                 .mockResolvedValue(true);
