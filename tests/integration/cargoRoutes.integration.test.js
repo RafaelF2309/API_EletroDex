@@ -1,3 +1,4 @@
+jest.mock('../../src/repositories/UsuarioRepository');
 jest.mock('../../src/controllers/CargoController');
 jest.mock('jsonwebtoken');
 jest.mock('../../src/config/auth');
@@ -9,6 +10,10 @@ const CargoController =
     require('../../src/controllers/CargoController');
 
 const jwt = require('jsonwebtoken');
+const UsuarioRepository = require('../../src/repositories/UsuarioRepository');
+const configurarMockAutorizacao = require('./helpers/mockAutorizacao');
+
+configurarMockAutorizacao(jwt, UsuarioRepository);
 
 const { getJwtSecret } =
     require('../../src/config/auth');
