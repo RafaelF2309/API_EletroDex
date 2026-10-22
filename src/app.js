@@ -2,12 +2,21 @@ const express = require('express');
 const path = require('path');
 const routes = require('./routes');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./config/swagger');
+
 const app = express();
 
 app.use(express.json());
 
 // Rota estática de uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument)
+);
 
 // Todas as rotas ficam sob o prefixo /api
 app.use('/api', routes);
