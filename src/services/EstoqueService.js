@@ -64,6 +64,7 @@ class EstoqueService {
     async criarEstoque(dados) {
         const { id_produto, id_lote, qtd_atual, localizacao_corredor, localizacao_prateleira } = dados;
 
+        // Campos obrigatórios – qtd_atual pode ser zero (estoque inicial)
         if (!id_produto || !id_lote || qtd_atual == null || !localizacao_corredor || !localizacao_prateleira) {
             throw {
                 status: 400,
@@ -71,8 +72,9 @@ class EstoqueService {
             };
         }
 
-        if (qtd_atual <= 0) {
-            throw { status: 400, mensagem: 'A quantidade atual deve ser maior que zero' };
+        // qtd_atual deve ser zero ao criar estoque (saldo inicial será ajustado via loteService)
+        if (Number(qtd_atual) !== 0) {
+            throw { status: 400, mensagem: 'A quantidade atual ao criar estoque deve ser 0' };
         }
 
         const produto = await ProdutoRepository.buscarPorId(id_produto);
@@ -85,8 +87,23 @@ class EstoqueService {
             throw { status: 404, mensagem: 'Lote informado não existe' };
         }
 
+        // Verifica se o lote já possui registro de estoque
+        const estoqueExistente = await EstoqueRepository.buscarPorLote(id_lote);
+        if (estoqueExistente) {
+            throw { status: 409, mensagem: 'Estoque já cadastrado para este lote' };
+        }
+
+        // Garante que o lote pertence ao produto informado
+        if (Number(lote.id_produto) !== Number(id_produto)) {
+            throw { status: 400, mensagem: 'id_produto não corresponde ao lote informado' };
+        }
+
         const novoId = await EstoqueRepository.criar({
-            id_produto, id_lote, qtd_atual, localizacao_corredor, localizacao_prateleira
+            id_produto,
+            id_lote,
+            qtd_atual: 0,
+            localizacao_corredor,
+            localizacao_prateleira
         });
         const estoqueCriado = await this.buscarEstoquePorId(novoId);
 
@@ -110,8 +127,10 @@ class EstoqueService {
             throw { status: 400, mensagem: 'qtd_atual só pode ser alterada pelo endpoint de ajuste auditável' };
         }
 
-        if (id_produto !== undefined) dadosAtualizados.id_produto = id_produto;
-        if (id_lote !== undefined) dadosAtualizados.id_lote = id_lote;
+        // Impedir alteração de id_produto e id_lote via PATCH
+        if (id_produto !== undefined || id_lote !== undefined) {
+            throw { status: 400, mensagem: 'id_produto e id_lote não podem ser alterados via atualização de estoque' };
+        }
         if (localizacao_corredor !== undefined) dadosAtualizados.localizacao_corredor = localizacao_corredor;
         if (localizacao_prateleira !== undefined) dadosAtualizados.localizacao_prateleira = localizacao_prateleira;
 

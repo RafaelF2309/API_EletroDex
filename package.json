@@ -4,14 +4,14 @@
   "description": "API REST do sistema EletroDex - Gerenciamento de Logística",
   "main": "src/server.js",
   "scripts": {
-  "start": "node src/server.js",
-  "dev": "nodemon src/server.js",
-  "test": "jest --runInBand",
-  "test:unit": "jest tests/unit --runInBand",
-  "test:integration": "jest tests/integration/fluxo.integration.test.js --runInBand --forceExit",
-  "test:routes": "jest tests/integration --ignore=tests/integration/fluxo.integration.test.js --runInBand",
-  "test:all": "jest --runInBand --forceExit"
-},
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --runInBand",
+    "test:unit": "jest tests/unit --runInBand",
+    "test:integration": "jest tests/integration/fluxo.integration.test.js --runInBand --forceExit",
+    "test:routes": "jest tests/integration --ignore=tests/integration/fluxo.integration.test.js --runInBand",
+    "test:all": "jest --runInBand --forceExit"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -22,7 +22,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
-    "mysql2": "^3.23.3"
+    "mysql2": "^3.23.3",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "jest": "^30.5.2",

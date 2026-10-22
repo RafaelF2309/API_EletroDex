@@ -2,12 +2,21 @@ const express = require('express');
 const path = require('path');
 const routes = require('./routes');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./config/swagger');
+
 const app = express();
 
 app.use(express.json());
 
 // Rota estática de uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument)
+);
 
 // Todas as rotas ficam sob o prefixo /api
 app.use('/api', routes);
@@ -27,10 +36,11 @@ app.use((req, res, next) => {
 // Middleware genérico de tratamento de erros
 // Recebe erros de qualquer controller via next(erro)
 app.use((err, req, res, next) => {
-    const status = err.status || 500;
-    const mensagem = err.mensagem || (status >= 500
-        ? 'Erro interno do servidor'
-        : err.message || 'Erro interno do servidor');
+    // Trata erros do Multer (ex.: limite de tamanho ou fileFilter) como 400
+    const isMulterError = err instanceof multer.MulterError || (err.message && !err.status);
+    const status = isMulterError ? 400 : (err.status || 500);
+    const mensagem = isMulterError ? err.message : (err.mensagem || (status >= 500 ? 'Erro interno do servidor' : err.message || 'Erro interno do servidor'));
+
 
     // Loga apenas erros de servidor (5xx) para não poluir o console com 4xx esperados
     if (status >= 500) {
