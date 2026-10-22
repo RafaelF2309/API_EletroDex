@@ -6,27 +6,59 @@
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **Runtime:** Node.js (v18+)
-* **Framework:** Express.js
-* **Banco de Dados:** MySQL (driver `mysql2/promise`)
-* **Upload de Arquivos:** Multer
-* **Segurança:** Bcrypt (hashing de senhas)
-* **Variáveis de Ambiente:** Dotenv
+- **Runtime:** Node.js (v18+)
+
+- **Framework:** Express.js
+
+- **Banco de Dados:** MySQL (driver `mysql2/promise`)
+
+- **Upload de Arquivos:** Multer
+
+- **Segurança:** Bcrypt (hashing de senhas)
+
+- **Variáveis de Ambiente:** Dotenv
+
+---
+
+## ⚙️ Configuração local
+
+1. Crie o banco e as tabelas executando `database/schema.sql` no MySQL.
+
+1. Copie `.env.example` para `.env`.
+
+1. Preencha `DB_USER` e `DB_PASSWORD` com um usuário do MySQL. Em uma instalação local padrão, `DB_USER=root` pode ser usado; deixe `DB_PASSWORD` vazio somente se o usuário `root` não tiver senha.
+
+1. Gere um `JWT_SECRET` próprio para cada ambiente.
+
+O arquivo `.env` é local e não deve ser enviado ao Git. Se a aplicação informar `Access denied for user ''@'localhost'`, verifique se `DB_USER` não está vazio no `.env`.
+
+### Swagger
+
+Com a API em execução, acesse a documentação interativa em:
+
+```
+http://localhost:3000/api-docs
+```
+
+Para testar rotas protegidas, faça login pelo endpoint `POST /api/auth/login`, copie o token retornado, clique em **Authorize** no Swagger e informe apenas o token JWT. A interface adicionará automaticamente o prefixo `Bearer` nas requisições autenticadas.
 
 ---
 
 ## 👥 Equipe de Desenvolvimento
 
-* LAISLA BEATRIZ DO COUTO TARARAN
-* MATHEUS FELIPPE DE ANDRADE
-* RAFAEL FERREIRA DA SILVA
-* RICARDO SILVA DA CRUZ
+- LAISLA BEATRIZ DO COUTO TARARAN
+
+- MATHEUS FELIPPE DE ANDRADE
+
+- RAFAEL FERREIRA DA SILVA
+
+- RICARDO SILVA DA CRUZ
 
 ---
 
 ## 📁 Estrutura do Projeto
 
-```text
+```
 API_EletroDex/
 ├── database/
 │   └── schema.sql              # Scripts DDL de criação das tabelas e do banco
@@ -77,3 +109,4 @@ API_EletroDex/
 ├── .gitignore                  # Regras de exclusão do Git
 ├── package.json                # Gerenciador de dependências e scripts
 └── README.md                   # Documentação da API
+```
