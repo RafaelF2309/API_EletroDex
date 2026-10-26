@@ -14,6 +14,13 @@ const ajusteRoutes = require('./ajusteRoutes');
 
 const authMiddleware = require('../middlewares/authMiddleware');
 
+router.get('/', (req, res) => {
+    res.json({
+        sucesso: true,
+        mensagem: 'API EletroDex rodando com sucesso'
+    });
+});
+
 // Autenticação
 // POST /api/auth/login
 router.use('/auth', authRoutes);

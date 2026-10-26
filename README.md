@@ -40,6 +40,8 @@ Com a API em execução, acesse a documentação interativa em:
 http://localhost:3000/api-docs
 ```
 
+Para verificar se a API está no ar, acesse `http://localhost:3000/api`. Essa rota retorna uma confirmação de que o servidor está funcionando.
+
 Para testar rotas protegidas, faça login pelo endpoint `POST /api/auth/login`, copie o token retornado, clique em **Authorize** no Swagger e informe apenas o token JWT. A interface adicionará automaticamente o prefixo `Bearer` nas requisições autenticadas.
 
 ---
