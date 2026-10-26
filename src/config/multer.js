@@ -32,7 +32,9 @@ const fileFilter = (req, file, cb) => {
     if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Tipo de arquivo não permitido. Envie apenas imagens (jpeg, png, webp, gif).'), false);
+        const erro = new Error('Tipo de arquivo não permitido. Envie apenas imagens (jpeg, png, webp, gif).');
+        erro.status = 400;
+        cb(erro, false);
     }
 };
 

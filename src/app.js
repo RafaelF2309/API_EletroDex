@@ -40,9 +40,7 @@ app.use((req, res, next) => {
 // Middleware genérico de tratamento de erros
 app.use((err, req, res, next) => {
 
-    const isMulterError =
-        err instanceof multer.MulterError ||
-        (err.message && !err.status);
+    const isMulterError = err instanceof multer.MulterError;
 
     const status = isMulterError
         ? 400

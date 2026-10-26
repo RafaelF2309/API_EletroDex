@@ -325,7 +325,7 @@ describe('Integração - Rotas de Usuários', () => {
     // GET /usuarios/:id
     // ==========================================
 
-    test('deve permitir buscar usuário por ID com token válido', async () => {
+    test('deve permitir buscar o próprio usuário com token válido', async () => {
 
         jwt.verify.mockReturnValue({
             id_usuario: 10,
@@ -334,7 +334,7 @@ describe('Integração - Rotas de Usuários', () => {
         });
 
         const resposta = await request(app)
-            .get('/api/usuarios/5')
+            .get('/api/usuarios/10')
             .set(
                 'Authorization',
                 'Bearer token-valido'
@@ -347,7 +347,7 @@ describe('Integração - Rotas de Usuários', () => {
             .toEqual({
                 sucesso: true,
                 mensagem: 'Usuário encontrado',
-                id: '5'
+                id: '10'
             });
 
         expect(UsuarioController.buscarPorId)
@@ -384,7 +384,7 @@ describe('Integração - Rotas de Usuários', () => {
     // PATCH /usuarios/:id
     // ==========================================
 
-    test('deve permitir atualizar usuário com token válido', async () => {
+    test('deve permitir atualizar o próprio usuário com token válido', async () => {
 
         jwt.verify.mockReturnValue({
             id_usuario: 10,
@@ -393,7 +393,7 @@ describe('Integração - Rotas de Usuários', () => {
         });
 
         const resposta = await request(app)
-            .patch('/api/usuarios/5')
+            .patch('/api/usuarios/10')
             .set(
                 'Authorization',
                 'Bearer token-valido'
