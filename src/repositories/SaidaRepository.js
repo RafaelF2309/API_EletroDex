@@ -87,6 +87,7 @@ class SaidaRepository {
                 u.nome AS nome_usuario,
                 s.id_produto,
                 p.nome AS nome_produto,
+                p.preco AS preco_produto,
                 s.id_lote,
                 l.numero_lote,
                 f.nome_fornecedor,

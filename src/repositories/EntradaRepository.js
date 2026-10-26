@@ -84,6 +84,7 @@ class EntradaRepository {
                 f.nome_fornecedor,
                 e.id_produto,
                 p.nome AS nome_produto,
+                p.preco AS preco_produto,
                 e.id_lote,
                 l.numero_lote,
                 e.data,

@@ -1,18 +1,29 @@
 export function getUsuario() {
   try {
-    return JSON.parse(localStorage.getItem('eletrodex_usuario') || 'null')
+    return JSON.parse(
+      localStorage.getItem('eletrodex_usuario') || 'null'
+    )
   } catch {
     return null
   }
 }
 
 export function isAuthenticated() {
-  return Boolean(localStorage.getItem('eletrodex_token'))
+  return Boolean(
+    localStorage.getItem('eletrodex_token')
+  )
 }
 
 export function saveSession(data) {
-  localStorage.setItem('eletrodex_token', data.token)
-  localStorage.setItem('eletrodex_usuario', JSON.stringify(data.usuario))
+  localStorage.setItem(
+    'eletrodex_token',
+    data.token
+  )
+
+  localStorage.setItem(
+    'eletrodex_usuario',
+    JSON.stringify(data.usuario)
+  )
 }
 
 export function logout() {
