@@ -2657,7 +2657,10 @@ function UsuarioModal({
 
         if (form.senha) {
           dados.senha = form.senha
-          if (!canManage) {
+          if (
+            Number(item.id_usuario) ===
+            Number(getUsuario()?.id_usuario)
+          ) {
             dados.senha_atual = form.senha_atual
           }
         }
@@ -2763,7 +2766,10 @@ function UsuarioModal({
           </label>
         )}
 
-        {item && !canManage && form.senha && (
+        {item &&
+          Number(item.id_usuario) ===
+            Number(getUsuario()?.id_usuario) &&
+          form.senha && (
           <label>
             Senha atual
             <input
