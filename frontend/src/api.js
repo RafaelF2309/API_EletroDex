@@ -20,6 +20,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('eletrodex_token')
       localStorage.removeItem('eletrodex_usuario')
+      window.dispatchEvent(new Event('eletrodex:unauthorized'))
     }
 
     return Promise.reject(error)

@@ -64,6 +64,24 @@ function App() {
   const [logged, setLogged] = useState(isAuthenticated())
   const [user, setUser] = useState(getUsuario())
 
+  useEffect(() => {
+    function handleUnauthorized() {
+      setUser(null)
+      setLogged(false)
+    }
+
+    window.addEventListener(
+      'eletrodex:unauthorized',
+      handleUnauthorized
+    )
+
+    return () =>
+      window.removeEventListener(
+        'eletrodex:unauthorized',
+        handleUnauthorized
+      )
+  }, [])
+
   if (!logged) {
     return (
       <Login
@@ -348,8 +366,12 @@ function Dashboard() {
   const [entradas, setEntradas] = useState([])
   const [saidas, setSaidas] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   async function carregar() {
+    setLoadError('')
+    setLoading(true)
+
     try {
       const [
         produtosRes,
@@ -377,7 +399,10 @@ function Dashboard() {
         saidasRes.data.dados || []
       )
     } catch (error) {
-      console.error(error)
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar os dados do dashboard.'
+      )
     } finally {
       setLoading(false)
     }
@@ -408,6 +433,10 @@ function Dashboard() {
 
   if (loading) {
     return <Loading />
+  }
+
+  if (loadError) {
+    return <div className="error" role="alert">{loadError}</div>
   }
 
   return (
@@ -595,6 +624,7 @@ function Produtos() {
   const [search, setSearch] = useState('')
   const [show, setShow] = useState(false)
   const [edit, setEdit] = useState(null)
+  const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
   const podeEditar =
@@ -603,10 +633,17 @@ function Produtos() {
     Number(user?.nivel_acesso) >= 3
 
   async function carregar() {
-    const response =
-      await api.get('/produtos')
+    setLoadError('')
 
-    setItems(response.data.dados || [])
+    try {
+      const response = await api.get('/produtos')
+      setItems(response.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar os produtos.'
+      )
+    }
   }
 
   useEffect(() => {
@@ -654,6 +691,7 @@ function Produtos() {
       }}
       canNew={podeEditar}
     >
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Produto',
@@ -767,6 +805,11 @@ function ProdutoModal({
         )
       }
 
+      window.alert(
+        item
+          ? 'Produto atualizado com sucesso.'
+          : 'Produto cadastrado com sucesso.'
+      )
       await onSaved()
     } catch (error) {
       alert(
@@ -887,6 +930,7 @@ function Fornecedores() {
   const [search, setSearch] = useState('')
   const [show, setShow] = useState(false)
   const [edit, setEdit] = useState(null)
+  const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
   const podeEditar =
@@ -895,10 +939,17 @@ function Fornecedores() {
     Number(user?.nivel_acesso) >= 3
 
   async function carregar() {
-    const r =
-      await api.get('/fornecedores')
+    setLoadError('')
 
-    setItems(r.data.dados || [])
+    try {
+      const response = await api.get('/fornecedores')
+      setItems(response.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar os fornecedores.'
+      )
+    }
   }
 
   useEffect(() => {
@@ -941,6 +992,7 @@ function Fornecedores() {
         setShow(true)
       }}
     >
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Fornecedor',
@@ -1024,6 +1076,11 @@ function FornecedorModal({
         )
       }
 
+      window.alert(
+        item
+          ? 'Fornecedor atualizado com sucesso.'
+          : 'Fornecedor cadastrado com sucesso.'
+      )
       await onSaved()
     } catch (error) {
       alert(
@@ -1130,6 +1187,7 @@ function Lotes() {
   const [search, setSearch] = useState('')
   const [show, setShow] = useState(false)
   const [edit, setEdit] = useState(null)
+  const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
   const podeEditar =
@@ -1138,23 +1196,28 @@ function Lotes() {
     Number(user?.nivel_acesso) >= 3
 
   async function carregar() {
-    const [
-      lotes,
-      produtosRes,
-      fornecedoresRes,
-    ] = await Promise.all([
-      api.get('/lotes'),
-      api.get('/produtos'),
-      api.get('/fornecedores'),
-    ])
+    setLoadError('')
 
-    setItems(lotes.data.dados || [])
-    setProdutos(
-      produtosRes.data.dados || []
-    )
-    setFornecedores(
-      fornecedoresRes.data.dados || []
-    )
+    try {
+      const [
+        lotes,
+        produtosRes,
+        fornecedoresRes,
+      ] = await Promise.all([
+        api.get('/lotes'),
+        api.get('/produtos'),
+        api.get('/fornecedores'),
+      ])
+
+      setItems(lotes.data.dados || [])
+      setProdutos(produtosRes.data.dados || [])
+      setFornecedores(fornecedoresRes.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar lotes, produtos e fornecedores.'
+      )
+    }
   }
 
   useEffect(() => {
@@ -1195,6 +1258,7 @@ function Lotes() {
         setShow(true)
       }}
     >
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Lote',
@@ -1319,6 +1383,11 @@ function LoteModal({
         )
       }
 
+      window.alert(
+        item
+          ? 'Lote atualizado com sucesso.'
+          : 'Lote cadastrado com sucesso.'
+      )
       await onSaved()
     } catch (error) {
       alert(
@@ -1511,16 +1580,24 @@ function Estoque() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] =
     useState(null)
+  const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
   const podeAjustar =
     Number(user?.nivel_acesso) >= 2
 
   async function carregar() {
-    const r =
-      await api.get('/estoque')
+    setLoadError('')
 
-    setItems(r.data.dados || [])
+    try {
+      const response = await api.get('/estoque')
+      setItems(response.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar o estoque.'
+      )
+    }
   }
 
   useEffect(() => {
@@ -1541,6 +1618,7 @@ function Estoque() {
       setSearch={setSearch}
       canNew={false}
     >
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Produto',
@@ -1632,6 +1710,7 @@ function AjusteModal({
         }
       )
 
+      window.alert('Estoque ajustado com sucesso.')
       await onSaved()
     } catch (error) {
       alert(
@@ -1713,39 +1792,38 @@ function Entradas() {
     useState([])
   const [search, setSearch] = useState('')
   const [show, setShow] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
   const podeCriar =
     Number(user?.nivel_acesso) >= 2
 
   async function carregar() {
-    const [
-      entradas,
-      produtosRes,
-      lotesRes,
-      fornecedoresRes,
-    ] = await Promise.all([
-      api.get('/entrada'),
-      api.get('/produtos'),
-      api.get('/lotes'),
-      api.get('/fornecedores'),
-    ])
+    setLoadError('')
 
-    setItems(
-      entradas.data.dados || []
-    )
+    try {
+      const [
+        entradas,
+        produtosRes,
+        lotesRes,
+        fornecedoresRes,
+      ] = await Promise.all([
+        api.get('/entrada'),
+        api.get('/produtos'),
+        api.get('/lotes'),
+        api.get('/fornecedores'),
+      ])
 
-    setProdutos(
-      produtosRes.data.dados || []
-    )
-
-    setLotes(
-      lotesRes.data.dados || []
-    )
-
-    setFornecedores(
-      fornecedoresRes.data.dados || []
-    )
+      setItems(entradas.data.dados || [])
+      setProdutos(produtosRes.data.dados || [])
+      setLotes(lotesRes.data.dados || [])
+      setFornecedores(fornecedoresRes.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar entradas e dados relacionados.'
+      )
+    }
   }
 
   useEffect(() => {
@@ -1767,6 +1845,7 @@ function Entradas() {
       canNew={podeCriar}
       onNew={() => setShow(true)}
     >
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Data',
@@ -1849,6 +1928,7 @@ function EntradaModal({
           form.rastreamento || null,
       })
 
+      window.alert('Entrada registrada com sucesso.')
       await onSaved()
     } catch (error) {
       alert(
@@ -2067,6 +2147,7 @@ function Saidas() {
   const [lotes, setLotes] = useState([])
   const [search, setSearch] = useState('')
   const [show, setShow] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
 
@@ -2074,27 +2155,28 @@ function Saidas() {
     Number(user?.nivel_acesso) >= 1
 
   async function carregar() {
-    const [
-      saidas,
-      produtosRes,
-      lotesRes,
-    ] = await Promise.all([
-      api.get('/saida'),
-      api.get('/produtos'),
-      api.get('/lotes'),
-    ])
+    setLoadError('')
 
-    setItems(
-      saidas.data.dados || []
-    )
+    try {
+      const [
+        saidas,
+        produtosRes,
+        lotesRes,
+      ] = await Promise.all([
+        api.get('/saida'),
+        api.get('/produtos'),
+        api.get('/lotes'),
+      ])
 
-    setProdutos(
-      produtosRes.data.dados || []
-    )
-
-    setLotes(
-      lotesRes.data.dados || []
-    )
+      setItems(saidas.data.dados || [])
+      setProdutos(produtosRes.data.dados || [])
+      setLotes(lotesRes.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar saídas e dados relacionados.'
+      )
+    }
   }
 
   useEffect(() => {
@@ -2116,6 +2198,7 @@ function Saidas() {
       canNew={podeCriar}
       onNew={() => setShow(true)}
     >
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Data',
@@ -2196,6 +2279,7 @@ function SaidaModal({
           form.rastreamento || null,
       })
 
+      window.alert('Saída registrada com sucesso.')
       await onSaved()
     } catch (error) {
       alert(
@@ -2389,6 +2473,7 @@ function Usuarios() {
   const [cargos, setCargos] = useState([])
   const [search, setSearch] = useState('')
   const [show, setShow] = useState(false)
+  const [edit, setEdit] = useState(null)
   const [loadError, setLoadError] = useState('')
 
   const user = getUsuario()
@@ -2496,13 +2581,16 @@ function Usuarios() {
           </Badge>,
           formatDate(item.dt_cadastro),
           <Actions
-            canEdit={podeGerenciar}
-            canDelete={podeGerenciar}
-            onEdit={() =>
-              alert(
-                'A edição de usuários pode alterar senha, cargo e setor. Faça pelo formulário específico do Backend.'
-              )
+            canEdit={
+              podeGerenciar ||
+              Number(item.id_usuario) ===
+                Number(user?.id_usuario)
             }
+            canDelete={podeGerenciar}
+            onEdit={() => {
+              setEdit(item)
+              setShow(true)
+            }}
             onDelete={() =>
               excluir(item.id_usuario)
             }
@@ -2512,12 +2600,16 @@ function Usuarios() {
 
       {show && (
         <UsuarioModal
+          item={edit}
+          canManage={podeGerenciar}
           cargos={cargos}
-          onClose={() =>
+          onClose={() => {
             setShow(false)
-          }
+            setEdit(null)
+          }}
           onSaved={async () => {
             setShow(false)
+            setEdit(null)
             await carregar()
           }}
         />
@@ -2527,16 +2619,19 @@ function Usuarios() {
 }
 
 function UsuarioModal({
+  item,
+  canManage,
   cargos,
   onClose,
   onSaved,
 }) {
   const [form, setForm] = useState({
-    nome: '',
-    email: '',
+    nome: item?.nome || '',
+    email: item?.email || '',
     senha: '',
-    setor: 'estoque',
-    id_cargo: '',
+    senha_atual: '',
+    setor: item?.setor || 'estoque',
+    id_cargo: item?.id_cargo || '',
   })
 
   const [loading, setLoading] =
@@ -2547,15 +2642,43 @@ function UsuarioModal({
     setLoading(true)
 
     try {
-      await api.post(
-        '/usuarios',
-        {
+      if (item) {
+        const dados = {
+          nome: form.nome,
+        }
+
+        if (canManage) {
+          Object.assign(dados, {
+            email: form.email,
+            setor: form.setor,
+            id_cargo: Number(form.id_cargo),
+          })
+        }
+
+        if (form.senha) {
+          dados.senha = form.senha
+          if (!canManage) {
+            dados.senha_atual = form.senha_atual
+          }
+        }
+
+        await api.patch(
+          `/usuarios/${item.id_usuario}`,
+          dados
+        )
+      } else {
+        await api.post('/usuarios', {
           ...form,
           id_cargo:
             Number(form.id_cargo),
-        }
-      )
+        })
+      }
 
+      window.alert(
+        item
+          ? 'Usuário atualizado com sucesso.'
+          : 'Usuário cadastrado com sucesso.'
+      )
       await onSaved()
     } catch (error) {
       alert(
@@ -2569,7 +2692,7 @@ function UsuarioModal({
 
   return (
     <Modal
-      title="Novo usuário"
+      title={item ? 'Editar usuário' : 'Novo usuário'}
       onClose={onClose}
     >
       <form
@@ -2595,6 +2718,7 @@ function UsuarioModal({
           <input
             type="email"
             value={form.email}
+            disabled={Boolean(item) && !canManage}
             onChange={(e) =>
               setForm({
                 ...form,
@@ -2606,23 +2730,57 @@ function UsuarioModal({
           />
         </label>
 
-        <label>
-          Senha
-          <input
-            type="password"
-            value={form.senha}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                senha:
-                  e.target.value,
-              })
-            }
-            required
-          />
-        </label>
+        {(!item || canManage) && (
+          <label>
+            {item ? 'Nova senha (opcional)' : 'Senha'}
+            <input
+              type="password"
+              value={form.senha}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  senha: e.target.value,
+                })
+              }
+              required={!item}
+            />
+          </label>
+        )}
 
-        <label>
+        {item && !canManage && (
+          <label>
+            Nova senha (opcional)
+            <input
+              type="password"
+              value={form.senha}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  senha: e.target.value,
+                })
+              }
+            />
+          </label>
+        )}
+
+        {item && !canManage && form.senha && (
+          <label>
+            Senha atual
+            <input
+              type="password"
+              value={form.senha_atual}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  senha_atual: e.target.value,
+                })
+              }
+              required
+            />
+          </label>
+        )}
+
+        {(!item || canManage) && <label>
           Setor
           <select
             value={form.setor}
@@ -2646,9 +2804,9 @@ function UsuarioModal({
               Vendas
             </option>
           </select>
-        </label>
+        </label>}
 
-        <label>
+        {(!item || canManage) && <label>
           Cargo
           <select
             value={form.id_cargo}
@@ -2680,7 +2838,7 @@ function UsuarioModal({
               </option>
             ))}
           </select>
-        </label>
+        </label>}
 
         <ModalActions
           onClose={onClose}
@@ -2963,17 +3121,26 @@ function CargoModal({
 function Ajustes() {
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const podeConsultar = Number(getUsuario()?.nivel_acesso) >= 2
 
   async function carregar() {
-    const r =
-      await api.get('/ajustes')
+    setLoadError('')
 
-    setItems(r.data.dados || [])
+    try {
+      const response = await api.get('/ajustes')
+      setItems(response.data.dados || [])
+    } catch (error) {
+      setLoadError(
+        error.response?.data?.mensagem ||
+          'Não foi possível carregar o histórico de ajustes.'
+      )
+    }
   }
 
   useEffect(() => {
-    carregar()
-  }, [])
+    if (podeConsultar) carregar()
+  }, [podeConsultar])
 
   const filtered = items.filter((item) =>
     JSON.stringify(item)
@@ -2989,6 +3156,12 @@ function Ajustes() {
       setSearch={setSearch}
       canNew={false}
     >
+      {!podeConsultar && (
+        <p className="muted">
+          Seu nível de acesso não permite consultar o histórico de ajustes.
+        </p>
+      )}
+      {loadError && <p className="error" role="alert">{loadError}</p>}
       <Table
         headers={[
           'Data',
@@ -3001,7 +3174,7 @@ function Ajustes() {
         ]}
         rows={filtered.map((item) => [
           formatDateTime(
-            item.data
+            item.ajuste_em || item.data
           ),
 
           item.nome_produto ||
